@@ -1,0 +1,24 @@
+<view class="card">
+  <view style="font-weight:600;">自动审核</view>
+  <switch checked="{{autoApprove}}" bindchange="onToggleAutoApprove" />
+  <view class="muted">关闭时所有新局需你手动放行;局主(已授权)始终免审。</view>
+</view>
+
+<view wx:if="{{metrics}}" class="card">
+  <view style="font-weight:600;margin-bottom:12rpx;">成团率</view>
+  <view>整体 {{metrics.overall.formed}}/{{metrics.overall.total}} · 目标 60%</view>
+  <!-- 真北极星:官方局与补位局已剔除,这才是产品能否自己跑的信号 -->
+  <view>自然局 {{metrics.organic.formed}}/{{metrics.organic.total}} · 目标 40%</view>
+</view>
+
+<view class="card">
+  <view style="font-weight:600;margin-bottom:12rpx;">待审 {{pending.length}}</view>
+  <view wx:for="{{pending}}" wx:key="_id" class="rec">
+    <view>{{item.startText}} · {{item.venue.name}}</view>
+    <view class="muted">{{item.description}}</view>
+    <view class="row">
+      <view class="btn-sm" data-id="{{item._id}}" data-approved="true" bindtap="onReview">通过</view>
+      <view class="btn-sm" data-id="{{item._id}}" data-approved="false" bindtap="onReview">拒绝</view>
+    </view>
+  </view>
+</view>

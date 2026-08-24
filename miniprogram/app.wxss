@@ -1,0 +1,5 @@
+page { background: #f7f7f7; color: #1a1a1a; font-size: 28rpx; line-height: 1.6; }
+.card { background: #fff; border-radius: 16rpx; padding: 32rpx; margin: 24rpx; }
+.muted { color: #8a8a8a; font-size: 24rpx; }
+.btn-primary { background: #1a1a1a; color: #fff; border-radius: 999rpx; padding: 24rpx; text-align: center; }
+.short-by { color: #d4741a; font-weight: 600; }

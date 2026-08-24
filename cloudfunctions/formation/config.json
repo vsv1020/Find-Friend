@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    {
+      "name": "formationJudge",
+      "type": "timer",
+      "config": "0 */15 * * * * *"
+    }
+  ]
+}

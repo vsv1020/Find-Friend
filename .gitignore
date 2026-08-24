@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+*.log
+
+# 云函数的 common 副本由 npm run sync:config 生成,不入库
+cloudfunctions/*/common/
+# 小程序端 rules 副本同理
+miniprogram/config/rules.js
+
+# 微信开发者工具本地配置(含个人 appid 与路径)
+project.private.config.json

@@ -1,3 +1,4 @@
+// ⚠️ 由 scripts/sync-config.js 自动生成,请勿直接修改。真源:config/rules.js
 /**
  * 业务规则常量 —— 所有决策值的唯一来源
  *

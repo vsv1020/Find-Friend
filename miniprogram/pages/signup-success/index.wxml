@@ -1,0 +1,19 @@
+<view class="card">
+  <view style="font-size:40rpx;font-weight:600;">
+    {{status === 'waitlist' ? '已加入候补' : '报名成功'}}
+  </view>
+  <view class="muted">
+    {{status === 'waitlist'
+      ? '名额暂满,有人取消会第一时间通知你。'
+      : '人齐了会通知你时间地点。开始前 6 小时确认是否成团。'}}
+  </view>
+  <view wx:if="{{!subscribed}}" class="muted">未开启通知的话,记得回来看看结果。</view>
+</view>
+
+<view wx:if="{{recommends.length}}" class="card">
+  <view style="font-weight:600;margin-bottom:16rpx;">这周末还有这些局</view>
+  <view wx:for="{{recommends}}" wx:key="_id" class="rec" data-id="{{item._id}}" bindtap="onTapRecommend">
+    <view>{{item.startText}} · {{item.venue.name}}</view>
+    <view class="short-by">{{item.shortByText}}</view>
+  </view>
+</view>

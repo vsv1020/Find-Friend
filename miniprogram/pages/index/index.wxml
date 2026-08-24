@@ -1,0 +1,10 @@
+<view wx:if="{{loading}}" class="card muted">加载中…</view>
+<view wx:elif="{{!events.length}}" class="card muted">这周还没有局。周末快到了,开一个?</view>
+
+<view wx:for="{{events}}" wx:key="_id" class="card" data-id="{{item._id}}" bindtap="onTapEvent">
+  <view class="muted">{{item.sceneText}}</view>
+  <view style="font-size:34rpx;font-weight:600;margin:8rpx 0;">{{item.startText}} · {{item.venue.name}}</view>
+  <view class="muted">人均约 ฿{{item.priceEstTHB}}</view>
+  <!-- 同样只给计数,不给身份 -->
+  <view class="short-by">{{item.shortByText}}</view>
+</view>

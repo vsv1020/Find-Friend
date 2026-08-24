@@ -1,0 +1,6 @@
+<view wx:if="{{loading}}" class="card muted">加载中…</view>
+<view wx:elif="{{!signups.length}}" class="card muted">还没报名过任何局。</view>
+<view wx:for="{{signups}}" wx:key="_id" class="card">
+  <view>{{item.startText}} · {{item.event.venue.name}}</view>
+  <view class="muted">{{item.status}}</view>
+</view>

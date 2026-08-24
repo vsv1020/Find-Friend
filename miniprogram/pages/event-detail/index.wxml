@@ -1,0 +1,45 @@
+<view wx:if="{{loading}}" class="card muted">加载中…</view>
+
+<block wx:elif="{{event}}">
+  <view class="card">
+    <view class="scene">{{event.sceneText}}</view>
+    <view class="title">{{event.startText}} · {{event.venue.name}}</view>
+    <view class="meta muted">人均约 ฿{{event.priceEstTHB}}</view>
+    <view class="desc">{{event.description}}</view>
+  </view>
+
+  <view class="card" bindtap="onOpenLocation">
+    <view class="venue-name">{{event.venue.name}}</view>
+    <view class="muted">{{event.venue.address}}</view>
+    <view class="muted">点击查看地图</view>
+  </view>
+
+  <!--
+    只显示计数,不显示任何参与者身份。
+    这不是设计偷懒,是 PRD §5「只匹配活动不匹配人」的界面约束。
+  -->
+  <view class="card">
+    <view class="short-by">{{event.shortByText}}</view>
+    <view class="muted">已报名 {{event.confirmedCount}} 人 · 最多 {{event.capacityMax}} 人</view>
+  </view>
+
+  <view class="footer">
+    <view class="btn-primary" bindtap="onTapSignup">我有空,报名</view>
+  </view>
+</block>
+
+<!-- 报名弹层:昵称 + 性别(D08)+ 手机号一键授权 -->
+<view wx:if="{{showProfileSheet}}" class="mask" bindtap="onCloseSheet"></view>
+<view wx:if="{{showProfileSheet}}" class="sheet">
+  <view class="sheet-title">最后一步</view>
+  <input class="input" placeholder="你的昵称" value="{{profile.nickname}}" bindinput="onNicknameInput" />
+  <view class="gender-row">
+    <view wx:for="{{genderOptions}}" wx:key="value"
+          class="gender-item {{profile.gender === item.value ? 'active' : ''}}"
+          data-value="{{item.value}}" bindtap="onGenderSelect">{{item.label}}</view>
+  </view>
+  <button class="btn-primary" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber">
+    确认报名
+  </button>
+  <view class="muted sheet-note">手机号仅用于识别账号,不会公开,也不会用于推销。</view>
+</view>

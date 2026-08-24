@@ -1,0 +1,17 @@
+{
+  "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "appid": "TODO_填入小程序AppID",
+  "projectname": "chuqu",
+  "compileType": "miniprogram",
+  "libVersion": "latest",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "minified": true,
+    "packNpmManually": false,
+    "nodeModules": false
+  },
+  "cloudfunctionTemplateRoot": ""
+}

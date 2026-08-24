@@ -1,0 +1,26 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/event-detail/index",
+    "pages/signup-success/index",
+    "pages/my/index",
+    "pages/admin/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "出去",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7f7f7"
+  },
+  "tabBar": {
+    "list": [
+      { "pagePath": "pages/index/index", "text": "周末" },
+      { "pagePath": "pages/my/index", "text": "我的" }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": { "desc": "用于在发局时选择活动地点" }
+  },
+  "requiredPrivateInfos": ["chooseLocation"],
+  "sitemapLocation": "sitemap.json"
+}
