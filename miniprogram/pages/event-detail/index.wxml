@@ -27,6 +27,7 @@
     <view class="btn-primary" bindtap="onTapSignup">我有空,报名</view>
     <view wx:if="{{event.canChat}}" class="btn-ghost" bindtap="onOpenChat">行前沟通</view>
     <view class="btn-ghost" bindtap="onOpenPoster">生成海报,发朋友圈</view>
+    <view class="report-link muted" bindtap="onReport">举报这个局</view>
   </view>
 </block>
 

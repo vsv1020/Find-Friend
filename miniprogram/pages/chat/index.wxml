@@ -7,7 +7,8 @@
   <view wx:if="{{loading}}" class="muted center">加载中…</view>
   <view wx:elif="{{!messages.length}}" class="muted center">还没有人说话。到了说一声吧。</view>
 
-  <view wx:for="{{messages}}" wx:key="_id" id="msg-{{item._id}}" class="msg {{item.isMine ? 'mine' : ''}}">
+  <view wx:for="{{messages}}" wx:key="_id" id="msg-{{item._id}}" class="msg {{item.isMine ? 'mine' : ''}}"
+        data-id="{{item._id}}" data-mine="{{item.isMine}}" bindlongpress="onLongPressMessage">
     <view wx:if="{{!item.isMine}}" class="who">{{item.nickname}}</view>
     <view class="bubble">{{item.content}}</view>
   </view>

@@ -9,6 +9,7 @@
 const api = require('../../utils/api')
 const { track, EVENTS } = require('../../utils/track')
 const fmt = require('../../utils/format')
+const { showReportSheet } = require('../../utils/report-sheet')
 
 Page({
   data: {
@@ -84,6 +85,8 @@ Page({
   onCloseSheet() { this.setData({ showProfileSheet: false }) },
 
   /** 成团后才对已确认的参与者显示 —— 与云函数 canEnter 的判定保持一致 */
+  onReport() { showReportSheet('event', this.eventId) },
+
   onOpenChat() {
     wx.navigateTo({ url: `/pages/chat/index?eventId=${this.eventId}` })
   },

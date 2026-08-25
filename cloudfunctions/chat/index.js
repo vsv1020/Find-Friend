@@ -13,6 +13,7 @@ const cloud = require('wx-server-sdk')
 const { canEnter, canSend, normalizeContent, PAGE_SIZE, CHAT_REJECT } = require('./common/chat')
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 const { SIGNUP_STATUS } = require('./common/rules')
+const { isBlocked } = require('./common/report')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -75,6 +76,9 @@ async function list({ eventId, since }, openid) {
 /** 发消息。必须先过内容安全(T28),这是微信审核的硬性要求。 */
 async function send({ eventId, content: raw }, openid) {
   const { me, e, signupStatus } = await context(eventId, openid)
+  if (isBlocked(me, 'send_message', new Date().toISOString()).blocked) {
+    throw Object.assign(new Error('当前账号无法发言'), { code: 'blocked' })
+  }
   const verdict = canSend({ event: e, signupStatus })
   if (!verdict.allowed) throw reject(verdict.reason)
 

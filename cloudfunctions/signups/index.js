@@ -5,10 +5,12 @@
  * 本文件只负责事务、计数与副作用,规则本身有单元测试覆盖。
  */
 const cloud = require('wx-server-sdk')
-const { evaluate, promoteFromWaitlist, canCancelSignup } = require('./common/signup')
+const { evaluate, canCancelSignup } = require('./common/signup')
+const { attemptJoin, attemptCancel, makeTcbOps } = require('./common/atomic')
 const { cancellationCounts, applyPenalty } = require('./common/reliability')
 const { SIGNUP_STATUS } = require('./common/rules')
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
+const { isBlocked } = require('./common/report')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -42,27 +44,33 @@ exports.main = async (event) => {
 async function join({ eventId, profile }, openid) {
   const now = new Date().toISOString()
   const user = await upsertUser(openid, profile)
+  // 封禁检查走单一出口 —— 各云函数共用,避免有的入口忘了查
+  if (isBlocked(user, 'signup', now).blocked) {
+    throw Object.assign(new Error('当前账号无法报名'), { code: 'blocked' })
+  }
   const e = (await db.collection('events').doc(eventId).get()).data
-  const existing = await db.collection('signups')
-    .where({ eventId, userId: user._id, status: _.neq(SIGNUP_STATUS.CANCELLED) }).count()
 
+  // evaluate 只做前置快速失败(未开放/已截止/限制中/重复的预检)。
+  // ⚠️ 名额判断不在这里 —— 并发下这里读到的 confirmedCount 是旧的,
+  //    满员与否由 attemptJoin 里的条件自增(reserveSlot)原子决定。
   const verdict = evaluate({
-    event: e, user, gender: profile.gender,
-    alreadySignedUp: existing.total > 0, now,
+    event: { ...e, confirmedCount: 0 },      // 归零让 evaluate 永不做名额判断
+    user, gender: profile.gender,
+    alreadySignedUp: false,                  // 重复报名由唯一索引权威判定
+    now,
   })
   if (!verdict.allowed) {
     throw Object.assign(new Error(REJECT_MESSAGE[verdict.reason] || '无法报名'), { code: verdict.reason })
   }
 
-  await db.collection('signups').add({
-    data: { eventId, userId: user._id, status: verdict.status, gender: profile.gender, createdAt: now },
+  // 临界区走 common/atomic(与对撞测试同一段代码)
+  const r = await attemptJoin(makeTcbOps(db), {
+    eventId, userId: user._id, gender: profile.gender, now,
   })
-  if (verdict.status === SIGNUP_STATUS.CONFIRMED) {
-    await db.collection('events').doc(eventId).update({
-      data: { confirmedCount: _.inc(1), [`genderCounts.${profile.gender}`]: _.inc(1) },
-    })
+  if (r.status === 'duplicate') {
+    throw Object.assign(new Error(REJECT_MESSAGE.duplicate), { code: 'duplicate' })
   }
-  return { status: verdict.status }
+  return { status: r.status }
 }
 
 /**
@@ -82,38 +90,23 @@ async function cancelSignup({ eventId }, openid) {
   }
 
   const e = (await db.collection('events').doc(eventId).get()).data
-  await db.collection('signups').doc(s._id).update({
-    data: { status: SIGNUP_STATUS.CANCELLED, cancelledAt: now },
+
+  // 临界区走 common/atomic:CAS 取消 + 原子递补(与对撞测试同一段代码)
+  const r = await attemptCancel(makeTcbOps(db), {
+    signupId: s._id, eventId, gender: s.gender, now,
   })
+  if (!r.cancelled) return { cancelled: false, penalty: null }   // 已被处理,幂等返回
 
   let penalty = null
-  if (s.status === SIGNUP_STATUS.CONFIRMED) {
-    await db.collection('events').doc(eventId).update({
-      data: { confirmedCount: _.inc(-1), [`genderCounts.${s.gender}`]: _.inc(-1) },
+  if (r.wasConfirmed && cancellationCounts(e.status)) {
+    const count = (user.noShowCount || 0) + 1
+    penalty = applyPenalty(count, now)
+    await db.collection('users').doc(user._id).update({
+      data: { noShowCount: count, status: penalty.status, restrictedUntil: penalty.restrictedUntil },
     })
-    if (cancellationCounts(e.status)) {
-      const count = (user.noShowCount || 0) + 1
-      penalty = applyPenalty(count, now)
-      await db.collection('users').doc(user._id).update({
-        data: { noShowCount: count, status: penalty.status, restrictedUntil: penalty.restrictedUntil },
-      })
-    }
-    await promoteWaitlist(eventId, e)
   }
+  if (r.promoted) await enqueueNotification(r.promoted.userId, eventId, 'waitlist_promoted')
   return { cancelled: true, penalty }
-}
-
-/** 有人退出后从候补递补,并触发通知 */
-async function promoteWaitlist(eventId, e) {
-  const slots = Math.max(0, e.capacityMax - (e.confirmedCount - 1))
-  if (!slots) return
-  const wl = (await db.collection('signups')
-    .where({ eventId, status: SIGNUP_STATUS.WAITLIST }).orderBy('createdAt', 'asc').limit(slots).get()).data
-  for (const s of promoteFromWaitlist(wl, slots)) {
-    await db.collection('signups').doc(s._id).update({ data: { status: SIGNUP_STATUS.CONFIRMED } })
-    await db.collection('events').doc(eventId).update({ data: { confirmedCount: _.inc(1) } })
-    await enqueueNotification(s.userId, eventId, 'waitlist_promoted')
-  }
 }
 
 async function mine(openid) {

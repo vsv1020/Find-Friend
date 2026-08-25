@@ -8,6 +8,7 @@
  */
 const api = require('../../utils/api')
 const { nextPoll, MAX_LENGTH } = require('../../utils/chat')
+const { showReportSheet } = require('../../utils/report-sheet')
 
 Page({
   data: {
@@ -79,6 +80,13 @@ Page({
       messages,
       scrollTo: messages.length ? `msg-${messages[messages.length - 1]._id}` : '',
     })
+  },
+
+  /** 长按别人的消息 → 举报 */
+  onLongPressMessage(e) {
+    const { id, mine } = e.currentTarget.dataset
+    if (mine) return
+    showReportSheet('message', id)
   },
 
   onInput(e) { this.setData({ draft: e.detail.value }) },

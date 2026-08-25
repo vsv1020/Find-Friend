@@ -16,3 +16,4 @@
                background: #f2f2f2; }
 .gender-item.active { background: #1a1a1a; color: #fff; }
 .btn-ghost { text-align: center; padding: 24rpx; color: #5a5a5a; }
+.report-link { text-align: center; padding: 16rpx; font-size: 24rpx; }

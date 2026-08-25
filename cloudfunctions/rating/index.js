@@ -11,6 +11,7 @@
 const cloud = require('wx-server-sdk')
 const { canRate, applyMarks, applyPenalty, markCounts, RATE_REJECT } = require('./common/reliability')
 const { RELIABILITY_MARK, SIGNUP_STATUS, EVENT_STATUS } = require('./common/rules')
+const { isBlocked } = require('./common/report')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -83,6 +84,9 @@ async function participants({ eventId }, openid) {
 async function rate({ eventId, rateeId, mark }, openid) {
   const now = new Date().toISOString()
   const me = await getUser(openid)
+  if (isBlocked(me, 'rate', now).blocked) {
+    throw Object.assign(new Error('当前账号无法评价'), { code: 'blocked' })
+  }
   const e = (await db.collection('events').doc(eventId).get()).data
 
   const [mineCount, theirsCount, dupCount] = await Promise.all([

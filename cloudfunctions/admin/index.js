@@ -25,6 +25,11 @@ exports.main = async (event) => {
       case 'setAutoApprove':  return ok(await setAutoApprove(event))
       case 'setHost':         return ok(await setHost(event))
       case 'metrics':         return ok(await metrics())
+      case 'openReports':     return ok(await openReports())
+      case 'resolveReport':   return ok(await resolveReport(event, admin))
+      case 'banUser':         return ok(await banUser(event, admin))
+      case 'unbanUser':       return ok(await unbanUser(event))
+      case 'takedownEvent':   return ok(await takedownEvent(event, admin))
       default:                return fail('unknown_action', `未知操作: ${event.action}`)
     }
   } catch (e) {
@@ -78,6 +83,93 @@ async function metrics() {
   return {
     ...northStar(events),
     autoApprove: Boolean(settings && settings.data && settings.data.autoApprove),
+  }
+}
+
+/** 待处理的举报,含被举报时的内容快照 */
+async function openReports() {
+  return (await db.collection('reports')
+    .where({ status: 'open' }).orderBy('createdAt', 'asc').limit(50).get()).data
+}
+
+/**
+ * 处理举报:resolved(成立,已处置)或 dismissed(不成立)。
+ * 处置动作(封禁/下架)是独立操作 —— 一次举报可能触发多个处置,也可能只是记录在案。
+ */
+async function resolveReport({ reportId, outcome, note }, admin) {
+  if (!['resolved', 'dismissed'].includes(outcome)) {
+    throw Object.assign(new Error('outcome 必须是 resolved 或 dismissed'), { code: 'bad_outcome' })
+  }
+  await db.collection('reports').doc(reportId).update({
+    data: { status: outcome, handledBy: admin._id, handledAt: new Date().toISOString(), handleNote: note || '' },
+  })
+  return { reportId, outcome }
+}
+
+/**
+ * 封禁:账号级,全部动作被阻止(common/report.js isBlocked 的单一出口)。
+ * 保留个人信息(处理纠纷需要)—— 删除个人信息走注销,是用户自己的权利。
+ * 同时取消其未开始的报名与未开始的局,不让被封的人还挂在别人的局里。
+ */
+async function banUser({ userId, note }, admin) {
+  const now = new Date().toISOString()
+  await db.collection('users').doc(userId).update({
+    data: { status: 'banned', bannedBy: admin._id, bannedAt: now, banNote: note || '' },
+  })
+
+  // 取消其未开始的报名
+  const upcoming = (await db.collection('signups')
+    .where({ userId, status: _.in(['confirmed', 'waitlist']) }).limit(100).get()).data
+  for (const s of upcoming) {
+    const e = (await db.collection('events').doc(s.eventId).get().catch(() => ({ data: null }))).data
+    if (!e || new Date(e.startAt) <= new Date(now)) continue
+    if (s.isHostSignup) continue   // 他当局主的局走下面整体下架
+    await db.collection('signups').doc(s._id).update({ data: { status: 'cancelled', cancelledAt: now } })
+    if (s.status === 'confirmed') {
+      await db.collection('events').doc(s.eventId).update({ data: { confirmedCount: _.inc(-1) } })
+    }
+  }
+
+  // 下架其未开始的局
+  const hisEvents = (await db.collection('events')
+    .where({ hostId: userId, status: _.in([STATUS.OPEN, STATUS.FORMED, STATUS.PENDING_REVIEW]) })
+    .limit(50).get()).data
+  for (const e of hisEvents) {
+    await doTakedown(e, admin, `局主被封禁: ${note || ''}`, now)
+  }
+  return { userId, banned: true, cancelledSignups: upcoming.length, takedownEvents: hisEvents.length }
+}
+
+async function unbanUser({ userId }) {
+  await db.collection('users').doc(userId).update({
+    data: { status: 'active', unbannedAt: new Date().toISOString() },
+  })
+  return { userId, banned: false }
+}
+
+/** 下架一个局(虚假活动、钓鱼地址等)。参与者会收到解散通知。 */
+async function takedownEvent({ eventId, note }, admin) {
+  const e = (await db.collection('events').doc(eventId).get()).data
+  await doTakedown(e, admin, note || '管理员下架', new Date().toISOString())
+  return { eventId, takedown: true }
+}
+
+async function doTakedown(e, admin, reason, now) {
+  const target = e.status === STATUS.PENDING_REVIEW ? STATUS.REJECTED : STATUS.CANCELLED_HOST
+  const rec = transition(e.status, target, { reason: `[下架] ${reason}`, at: now })
+  await db.collection('events').doc(e._id).update({
+    data: { status: rec.status, cancelledAt: now, takedownBy: admin._id },
+  })
+  await db.collection('eventStatusLog').add({ data: { eventId: e._id, ...rec } })
+  // 通知已报名者(复用解散模板)
+  const signups = (await db.collection('signups')
+    .where({ eventId: e._id, status: _.in(['confirmed', 'waitlist']) }).limit(100).get()).data
+  for (const s of signups) {
+    await db.collection('notifications').add({
+      data: { userId: s.userId, eventId: e._id, templateKey: 'event_cancelled_low',
+              channel: 'wx_subscribe', status: 'pending',
+              dedupeKey: `${s.userId}:${e._id}:takedown`, createdAt: now },
+    }).catch(() => {})
   }
 }
 

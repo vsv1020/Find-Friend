@@ -8,18 +8,21 @@ const api = require('../../utils/api')
 const fmt = require('../../utils/format')
 
 Page({
-  data: { pending: [], metrics: null, autoApprove: false, loading: true },
+  data: { pending: [], reports: [], metrics: null, autoApprove: false, loading: true },
 
   onShow() { this.load() },
 
   async load() {
     try {
-      const [pending, metrics] = await Promise.all([api.admin.pending(), api.admin.metrics()])
+      const [pending, metrics, reports] = await Promise.all([
+        api.admin.pending(), api.admin.metrics(), api.admin.openReports().catch(() => []),
+      ])
       this.setData({
         loading: false,
         metrics,
         autoApprove: metrics.autoApprove,
         pending: pending.map(e => ({ ...e, startText: fmt.formatStart(e.startAt) })),
+        reports,
       })
     } catch (e) { this.setData({ loading: false }) }
   },
@@ -28,6 +31,32 @@ Page({
   async onToggleAutoApprove(e) {
     await api.admin.setAutoApprove(e.detail.value)
     this.setData({ autoApprove: e.detail.value })
+  },
+
+  /** 处理一条举报:提供 封人 / 下架局 / 驳回 三个动作 */
+  onHandleReport(e) {
+    const r = this.data.reports[e.currentTarget.dataset.index]
+    const actions = ['举报成立,封禁对方', '举报成立,下架该局', '不成立,驳回']
+    wx.showActionSheet({
+      itemList: actions,
+      success: async res => {
+        try {
+          if (res.tapIndex === 0 && r.targetOwnerId) {
+            await api.admin.banUser(r.targetOwnerId, `举报: ${r.reason}`)
+            await api.admin.resolveReport(r._id, 'resolved', '已封禁')
+          } else if (res.tapIndex === 1) {
+            const eventId = r.targetType === 'event' ? r.targetId : (r.context && r.context.eventId)
+            if (eventId) await api.admin.takedownEvent(eventId, `举报: ${r.reason}`)
+            await api.admin.resolveReport(r._id, 'resolved', '已下架')
+          } else {
+            await api.admin.resolveReport(r._id, 'dismissed')
+          }
+          this.load()
+        } catch (err) {
+          wx.showToast({ title: err.message || '处理失败', icon: 'none' })
+        }
+      },
+    })
   },
 
   async onReview(e) {

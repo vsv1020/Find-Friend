@@ -26,6 +26,11 @@ module.exports = {
     cancel: eventId => call('signups', 'cancel', { eventId }),
     mine: () => call('signups', 'mine'),
   },
+  report: {
+    /** targetType: event | message | user */
+    create: (targetType, targetId, reason, detail) =>
+      call('report', 'create', { targetType, targetId, reason, detail }),
+  },
   chat: {
     /** 传 since 拉增量(轮询用),不传拉最近一页 */
     list: (eventId, since) => call('chat', 'list', { eventId, since }),
@@ -59,5 +64,10 @@ module.exports = {
     /** D14 授予/回收局主权限 —— 「给权限不给钱」的操作入口 */
     setHost: (userId, isHost) => call('admin', 'setHost', { userId, isHost }),
     metrics: () => call('admin', 'metrics'),
+    openReports: () => call('admin', 'openReports'),
+    resolveReport: (reportId, outcome, note) => call('admin', 'resolveReport', { reportId, outcome, note }),
+    banUser: (userId, note) => call('admin', 'banUser', { userId, note }),
+    unbanUser: userId => call('admin', 'unbanUser', { userId }),
+    takedownEvent: (eventId, note) => call('admin', 'takedownEvent', { eventId, note }),
   },
 }

@@ -24,6 +24,12 @@ const COLLECTIONS = [
   // eventId + createdAt 是轮询拉增量的关键索引
   { name: 'messages', indexes: [{ keys: { eventId: 1, createdAt: 1 } }] },
   { name: 'reviewQueue', indexes: [{ keys: { type: 1, createdAt: -1 } }] },
+  // dedupeKey 唯一:同一举报人对同一目标只记一次
+  { name: 'reports', indexes: [
+    { keys: { dedupeKey: 1 }, unique: true },
+    { keys: { status: 1, createdAt: 1 } },
+    { keys: { reporterId: 1, createdAt: -1 } },
+  ]},
   { name: 'reliabilityMarks', indexes: [{ keys: { eventId: 1, rateeId: 1 } }] },
   // dedupeKey 唯一索引是定时任务幂等的最后一道防线
   { name: 'notifications', indexes: [

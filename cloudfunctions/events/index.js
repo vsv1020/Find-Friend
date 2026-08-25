@@ -13,6 +13,7 @@ const { SCENE_RULES } = require('./common/rules')
 const { generate: generateShareCode } = require('./common/sharecode')
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 const { hostInitialSignup } = require('./common/signup')
+const { isBlocked } = require('./common/report')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -83,6 +84,9 @@ async function detail({ eventId, shareCode }) {
 /** 发局。初始状态由 D06 的全局开关与 D14 的局主免审白名单共同决定。 */
 async function create(payload, openid) {
   const user = await getUser(openid)
+  if (isBlocked(user, 'create_event', new Date().toISOString()).blocked) {
+    throw Object.assign(new Error('当前账号无法发布活动'), { code: 'blocked' })
+  }
   const rules = SCENE_RULES[payload.sceneType]
   if (!rules) throw Object.assign(new Error('未知场景类型'), { code: 'bad_scene' })
 

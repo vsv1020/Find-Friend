@@ -22,3 +22,11 @@
     </view>
   </view>
 </view>
+
+<view wx:if="{{reports.length}}" class="card">
+  <view style="font-weight:600;margin-bottom:12rpx;">待处理举报 {{reports.length}}</view>
+  <view wx:for="{{reports}}" wx:key="_id" class="rec" data-index="{{index}}" bindtap="onHandleReport">
+    <view>{{item.reason}} · {{item.targetType}}</view>
+    <view class="muted">{{item.detail || item.context.content || item.context.description || ''}}</view>
+  </view>
+</view>
