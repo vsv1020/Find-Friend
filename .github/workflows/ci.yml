@@ -1,0 +1,17 @@
+name: CI
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # 同步脚本必须能干净执行 —— 云函数读不到目录外文件,部署全靠它
+      - run: npm run sync:config
+      - run: npm test

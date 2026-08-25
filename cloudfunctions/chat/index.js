@@ -14,6 +14,7 @@ const { canEnter, canSend, normalizeContent, PAGE_SIZE, CHAT_REJECT } = require(
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 const { SIGNUP_STATUS } = require('./common/rules')
 const { isBlocked } = require('./common/report')
+const { validISO } = require('./common/validate')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -54,12 +55,14 @@ async function list({ eventId, since }, openid) {
   const verdict = canEnter({ event: e, signupStatus })
   if (!verdict.allowed) throw reject(verdict.reason)
 
-  const where = since ? { eventId, createdAt: _.gt(since) } : { eventId }
+  // since 用作查询条件(字符串比较),必须是干净的 ISO 串 —— 传对象/数组直接忽略
+  const sinceISO = validISO(since)
+  const where = sinceISO ? { eventId, createdAt: _.gt(sinceISO) } : { eventId }
   const rows = (await db.collection('messages')
     .where(where)
-    .orderBy('createdAt', since ? 'asc' : 'desc')
+    .orderBy('createdAt', sinceISO ? 'asc' : 'desc')
     .limit(PAGE_SIZE).get()).data
-  const messages = since ? rows : rows.reverse()
+  const messages = sinceISO ? rows : rows.reverse()
 
   const nicknames = await nicknamesFor(messages.map(m => m.userId))
   return {

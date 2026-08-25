@@ -14,6 +14,8 @@ const { generate: generateShareCode } = require('./common/sharecode')
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 const { hostInitialSignup } = require('./common/signup')
 const { isBlocked } = require('./common/report')
+const { publicEvent } = require('./common/projection')
+const { validateEventPayload } = require('./common/validate')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -22,17 +24,6 @@ const _ = db.command
 const ok = data => ({ ok: true, data })
 const fail = (code, message) => ({ ok: false, code, message })
 
-/** 对外暴露的局字段白名单 —— 显式列出,防止将来加字段时误泄露 */
-function publicEvent(e) {
-  return {
-    _id: e._id, sceneType: e.sceneType, startAt: e.startAt, durationMin: e.durationMin,
-    venue: e.venue, capacityMin: e.capacityMin, capacityMax: e.capacityMax,
-    shareCode: e.shareCode,
-    priceEstTHB: e.priceEstTHB, description: e.description, status: e.status,
-    confirmedCount: e.confirmedCount || 0,
-    // 注意:此处没有、也不应有 signups / hostId / 参与者昵称头像等任何身份信息
-  }
-}
 
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext()
@@ -87,16 +78,21 @@ async function create(payload, openid) {
   if (isBlocked(user, 'create_event', new Date().toISOString()).blocked) {
     throw Object.assign(new Error('当前账号无法发布活动'), { code: 'blocked' })
   }
-  const rules = SCENE_RULES[payload.sceneType]
-  if (!rules) throw Object.assign(new Error('未知场景类型'), { code: 'bad_scene' })
+  // 载荷先过校验;此后只允许使用清洗后的 checked.value(见 common/validate.js)
+  const checked = validateEventPayload(payload, new Date().toISOString())
+  if (!checked.ok) {
+    throw Object.assign(new Error(`参数无效: ${checked.errors.join(', ')}`), { code: 'bad_payload' })
+  }
+  const clean = checked.value
+  const rules = SCENE_RULES[clean.sceneType]
 
   // T28:发局文案会出现在公开列表页,传播面大于群聊消息 ——
   // 因此这里 risky 直接拒绝,不走群聊那套「放行并标记」的降级(见 common/moderation.js 的说明)
-  if (needsCheck(payload.description)) {
+  if (needsCheck(clean.description)) {
     let check
     try {
       check = interpret(await cloud.openapi.security.msgSecCheck({
-        content: payload.description, version: 2, scene: 4, openid,   // scene 4 = 社交日志
+        content: clean.description, version: 2, scene: 4, openid,   // scene 4 = 社交日志
       }))
     } catch (err) {
       check = onError(err)
@@ -106,7 +102,6 @@ async function create(payload, openid) {
     }
   }
 
-  const capacityMax = clamp(payload.capacityMax || rules.capacityMaxDefault, rules.capacityMin, rules.capacityHardMax)
   const settings = await getSettings()
   const status = resolveInitialStatus({ isHost: user.isHost, autoApprove: settings.autoApprove })
   const now = new Date().toISOString()
@@ -114,14 +109,14 @@ async function create(payload, openid) {
   const doc = {
     hostId: user._id,
     shareCode: generateShareCode(),   // 小程序码用;数据库加唯一索引兜底碰撞
-    sceneType: payload.sceneType,
-    venue: payload.venue,            // D09 自由输入:{name, address, lat, lng}
-    startAt: payload.startAt,
+    sceneType: clean.sceneType,
+    venue: clean.venue,              // 已校验:name/address 限长,lat/lng 数值范围
+    startAt: clean.startAt,          // 已校验:ISO、未过近、未过远
     durationMin: rules.durationMinDefault,
     capacityMin: rules.capacityMin,  // D02 系统固定,不接受局主传入
-    capacityMax,
-    priceEstTHB: payload.priceEstTHB || rules.priceEstDefaultTHB,
-    description: (payload.description || '').slice(0, 200),
+    capacityMax: clean.capacityMax,
+    priceEstTHB: clean.priceEstTHB,
+    description: clean.description,
     status,
     isOfficial: Boolean(user.isAdmin),
     adminFilledIn: false,
@@ -182,8 +177,6 @@ async function track({ name, props, anonId }, openid) {
 }
 
 // ---- helpers ----
-function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)) }
-
 async function getUser(openid) {
   const r = await db.collection('users').where({ openid }).limit(1).get()
   if (!r.data.length) throw Object.assign(new Error('请先完成报名以创建账号'), { code: 'no_user' })

@@ -11,6 +11,7 @@ const { cancellationCounts, applyPenalty } = require('./common/reliability')
 const { SIGNUP_STATUS } = require('./common/rules')
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 const { isBlocked } = require('./common/report')
+const { validateProfile } = require('./common/validate')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -43,7 +44,14 @@ exports.main = async (event) => {
 
 async function join({ eventId, profile }, openid) {
   const now = new Date().toISOString()
-  const user = await upsertUser(openid, profile)
+  // 资料先过校验 —— gender 会拼进 genderCounts.${gender} 字段路径,
+  // 不校验枚举等于开放任意字段注入(见 common/validate.js 顶部审计记录)
+  const checked = validateProfile(profile)
+  if (!checked.ok) {
+    throw Object.assign(new Error(`资料无效: ${checked.errors.join(', ')}`), { code: 'bad_profile' })
+  }
+  const clean = checked.value
+  const user = await upsertUser(openid, clean)
   // 封禁检查走单一出口 —— 各云函数共用,避免有的入口忘了查
   if (isBlocked(user, 'signup', now).blocked) {
     throw Object.assign(new Error('当前账号无法报名'), { code: 'blocked' })
@@ -55,7 +63,7 @@ async function join({ eventId, profile }, openid) {
   //    满员与否由 attemptJoin 里的条件自增(reserveSlot)原子决定。
   const verdict = evaluate({
     event: { ...e, confirmedCount: 0 },      // 归零让 evaluate 永不做名额判断
-    user, gender: profile.gender,
+    user, gender: clean.gender,
     alreadySignedUp: false,                  // 重复报名由唯一索引权威判定
     now,
   })
@@ -65,7 +73,7 @@ async function join({ eventId, profile }, openid) {
 
   // 临界区走 common/atomic(与对撞测试同一段代码)
   const r = await attemptJoin(makeTcbOps(db), {
-    eventId, userId: user._id, gender: profile.gender, now,
+    eventId, userId: user._id, gender: clean.gender, now,
   })
   if (r.status === 'duplicate') {
     throw Object.assign(new Error(REJECT_MESSAGE.duplicate), { code: 'duplicate' })

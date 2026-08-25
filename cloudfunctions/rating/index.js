@@ -12,6 +12,7 @@ const cloud = require('wx-server-sdk')
 const { canRate, applyMarks, applyPenalty, markCounts, RATE_REJECT } = require('./common/reliability')
 const { RELIABILITY_MARK, SIGNUP_STATUS, EVENT_STATUS } = require('./common/rules')
 const { isBlocked } = require('./common/report')
+const { LIMITS } = require('./common/validate')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -130,6 +131,9 @@ async function markAttendance({ eventId, marks }, openid) {
     throw Object.assign(new Error('只有局主能标记到场情况'), { code: 'forbidden' })
   }
   if (!e.endedAt) throw Object.assign(new Error('活动还没结束'), { code: RATE_REJECT.NOT_ENDED })
+  if (!Array.isArray(marks) || marks.length > LIMITS.attendanceMarksMax) {
+    throw Object.assign(new Error('标记数量异常'), { code: 'bad_marks' })
+  }
 
   const VALID_MARKS = new Set(Object.values(RELIABILITY_MARK))
   const results = []
