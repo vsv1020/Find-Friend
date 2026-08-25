@@ -7,6 +7,7 @@ cloudfunctions/*/common/
 # 小程序端 rules 副本同理
 miniprogram/config/rules.js
 miniprogram/utils/schedule.js
+miniprogram/utils/chat.js
 
 # 微信开发者工具本地配置(含个人 appid 与路径)
 project.private.config.json

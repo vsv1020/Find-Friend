@@ -26,6 +26,11 @@ module.exports = {
     cancel: eventId => call('signups', 'cancel', { eventId }),
     mine: () => call('signups', 'mine'),
   },
+  chat: {
+    /** 传 since 拉增量(轮询用),不传拉最近一页 */
+    list: (eventId, since) => call('chat', 'list', { eventId, since }),
+    send: (eventId, content) => call('chat', 'send', { eventId, content }),
+  },
   rating: {
     /** 我参加过、还在 7 天评价窗口内、且没评完的局 */
     pending: () => call('rating', 'pendingRatings'),

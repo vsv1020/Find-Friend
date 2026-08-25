@@ -8,6 +8,7 @@ const cloud = require('wx-server-sdk')
 const { evaluate, promoteFromWaitlist } = require('./common/signup')
 const { cancellationCounts, applyPenalty } = require('./common/reliability')
 const { SIGNUP_STATUS } = require('./common/rules')
+const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -135,6 +136,22 @@ async function mine(openid) {
 async function upsertUser(openid, profile) {
   const r = await db.collection('users').where({ openid }).limit(1).get()
   if (r.data.length) return r.data[0]
+
+  // T28:昵称属于 UGC,必须过内容安全 —— 不接会被微信审核打回
+  if (needsCheck(profile.nickname)) {
+    let check
+    try {
+      check = interpret(await cloud.openapi.security.msgSecCheck({
+        content: profile.nickname, version: 2, scene: 1, openid,   // scene 1 = 资料
+      }))
+    } catch (err) {
+      check = onError(err)
+    }
+    // 昵称与聊天消息不同:它会长期展示给所有同行者,所以 risky 一律拒绝
+    if (check.action === ACTION.REJECT) {
+      throw Object.assign(new Error('这个昵称不能用,换一个'), { code: 'nickname_risky' })
+    }
+  }
 
   let phone = null
   if (profile.phoneCode) {

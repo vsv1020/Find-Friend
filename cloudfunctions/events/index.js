@@ -11,6 +11,7 @@ const cloud = require('wx-server-sdk')
 const { STATUS, resolveInitialStatus, transition, PUBLISHED } = require('./common/state-machine')
 const { SCENE_RULES } = require('./common/rules')
 const { generate: generateShareCode } = require('./common/sharecode')
+const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -83,6 +84,22 @@ async function create(payload, openid) {
   const user = await getUser(openid)
   const rules = SCENE_RULES[payload.sceneType]
   if (!rules) throw Object.assign(new Error('未知场景类型'), { code: 'bad_scene' })
+
+  // T28:发局文案会出现在公开列表页,传播面大于群聊消息 ——
+  // 因此这里 risky 直接拒绝,不走群聊那套「放行并标记」的降级(见 common/moderation.js 的说明)
+  if (needsCheck(payload.description)) {
+    let check
+    try {
+      check = interpret(await cloud.openapi.security.msgSecCheck({
+        content: payload.description, version: 2, scene: 4, openid,   // scene 4 = 社交日志
+      }))
+    } catch (err) {
+      check = onError(err)
+    }
+    if (check.action === ACTION.REJECT) {
+      throw Object.assign(new Error('这段说明不能发布,改一下'), { code: 'description_risky' })
+    }
+  }
 
   const capacityMax = clamp(payload.capacityMax || rules.capacityMaxDefault, rules.capacityMin, rules.capacityHardMax)
   const settings = await getSettings()

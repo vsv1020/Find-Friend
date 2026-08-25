@@ -1,0 +1,25 @@
+<!-- 常驻提示:既是给用户的预期管理,也是类目申报时「这是行前沟通不是社交」的证据 -->
+<view class="notice">
+  {{archived ? '这个局已经结束,沟通已关闭,记录仍可查看。' : '本群将在活动结束 48 小时后自动关闭。'}}
+</view>
+
+<scroll-view class="list" scroll-y scroll-into-view="{{scrollTo}}" scroll-with-animation>
+  <view wx:if="{{loading}}" class="muted center">加载中…</view>
+  <view wx:elif="{{!messages.length}}" class="muted center">还没有人说话。到了说一声吧。</view>
+
+  <view wx:for="{{messages}}" wx:key="_id" id="msg-{{item._id}}" class="msg {{item.isMine ? 'mine' : ''}}">
+    <view wx:if="{{!item.isMine}}" class="who">{{item.nickname}}</view>
+    <view class="bubble">{{item.content}}</view>
+  </view>
+</scroll-view>
+
+<view class="composer">
+  <block wx:if="{{archived}}">
+    <view class="muted center archived-tip">沟通已关闭</view>
+  </block>
+  <block wx:else>
+    <input class="input" value="{{draft}}" bindinput="onInput" maxlength="{{maxLength}}"
+           placeholder="我到了 / 晚十分钟 / 在二楼靠窗" confirm-type="send" bindconfirm="onSend" />
+    <view class="send {{draft ? '' : 'disabled'}}" bindtap="onSend">发送</view>
+  </block>
+</view>

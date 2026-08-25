@@ -21,7 +21,9 @@ const COLLECTIONS = [
     { keys: { eventId: 1, status: 1, createdAt: 1 } },
     { keys: { userId: 1, createdAt: -1 } },
   ]},
+  // eventId + createdAt 是轮询拉增量的关键索引
   { name: 'messages', indexes: [{ keys: { eventId: 1, createdAt: 1 } }] },
+  { name: 'reviewQueue', indexes: [{ keys: { type: 1, createdAt: -1 } }] },
   { name: 'reliabilityMarks', indexes: [{ keys: { eventId: 1, rateeId: 1 } }] },
   // dedupeKey 唯一索引是定时任务幂等的最后一道防线
   { name: 'notifications', indexes: [

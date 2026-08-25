@@ -8,6 +8,7 @@
     "pages/my/index",
     "pages/privacy/index",
     "pages/rating/index",
+    "pages/chat/index",
     "pages/admin/index"
   ],
   "window": {
@@ -21,7 +22,8 @@
       { "pagePath": "pages/index/index", "text": "周末" },
       { "pagePath": "pages/my/index",
     "pages/privacy/index",
-    "pages/rating/index", "text": "我的" }
+    "pages/rating/index",
+    "pages/chat/index", "text": "我的" }
     ]
   },
   "permission": {

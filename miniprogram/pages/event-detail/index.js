@@ -42,6 +42,7 @@ Page({
           startText: fmt.formatStart(event.startAt),
           sceneText: fmt.sceneLabel(event.sceneType),
           shortByText: fmt.shortByText(event),
+          canChat: event.status === 'formed' || event.status === 'done' || event.status === 'archived',
         },
       })
       track(EVENTS.EVENT_DETAIL_VIEW, { eventId: this.eventId, sceneType: event.sceneType })
@@ -81,6 +82,11 @@ Page({
   onNicknameInput(e) { this.setData({ 'profile.nickname': e.detail.value }) },
   onGenderSelect(e) { this.setData({ 'profile.gender': e.currentTarget.dataset.value }) },
   onCloseSheet() { this.setData({ showProfileSheet: false }) },
+
+  /** 成团后才对已确认的参与者显示 —— 与云函数 canEnter 的判定保持一致 */
+  onOpenChat() {
+    wx.navigateTo({ url: `/pages/chat/index?eventId=${this.eventId}` })
+  },
 
   onOpenPoster() {
     wx.navigateTo({ url: `/pages/poster/index?eventId=${this.eventId}` })

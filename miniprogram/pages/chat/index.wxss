@@ -1,0 +1,16 @@
+page { display: flex; flex-direction: column; height: 100vh; background: #f7f7f7; }
+.notice { padding: 16rpx 32rpx; background: #fdf3e7; color: #8a6a3a; font-size: 24rpx; }
+.list { flex: 1; padding: 24rpx; box-sizing: border-box; }
+.center { text-align: center; padding: 60rpx 0; }
+.msg { margin-bottom: 28rpx; }
+.who { font-size: 24rpx; color: #8a8a8a; margin-bottom: 8rpx; }
+.bubble { display: inline-block; max-width: 78%; padding: 20rpx 28rpx;
+          border-radius: 20rpx; background: #fff; word-break: break-word; }
+.msg.mine { text-align: right; }
+.msg.mine .bubble { background: #1a1a1a; color: #fff; text-align: left; }
+.composer { display: flex; gap: 16rpx; padding: 20rpx 24rpx; background: #fff;
+            padding-bottom: calc(20rpx + env(safe-area-inset-bottom)); align-items: center; }
+.input { flex: 1; background: #f2f2f2; border-radius: 999rpx; padding: 20rpx 28rpx; }
+.send { padding: 20rpx 32rpx; color: #1a1a1a; font-weight: 600; }
+.send.disabled { opacity: .35; }
+.archived-tip { flex: 1; padding: 20rpx 0; }

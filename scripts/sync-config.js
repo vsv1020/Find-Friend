@@ -37,7 +37,7 @@ copyRules(path.join(COMMON_DIR, 'rules.js')); count++
 copyRules(path.join(ROOT, 'miniprogram/config/rules.js')); count++
 
 // 小程序端也需要用到的领域模块(发局表单的周末时段计算)
-for (const mod of ['schedule.js']) {
+for (const mod of ['schedule.js', 'chat.js']) {
   const dest = path.join(ROOT, 'miniprogram/utils', mod)
   fs.writeFileSync(dest, BANNER + fs.readFileSync(path.join(COMMON_DIR, mod), 'utf8')
     .replace("require('./rules')", "require('../config/rules')"))
