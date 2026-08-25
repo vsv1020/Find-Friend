@@ -12,6 +12,7 @@ const { STATUS, resolveInitialStatus, transition, PUBLISHED } = require('./commo
 const { SCENE_RULES } = require('./common/rules')
 const { generate: generateShareCode } = require('./common/sharecode')
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
+const { hostInitialSignup } = require('./common/signup')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -120,12 +121,18 @@ async function create(payload, openid) {
     status,
     isOfficial: Boolean(user.isAdmin),
     adminFilledIn: false,
-    confirmedCount: 0,
+    // 从 1 起:局主本人算一个。D02 的最低成团人数含局主。
+    confirmedCount: 1,
+    genderCounts: { [user.gender]: 1 },
     // D01:只有真正公开过的局才计入成团率分母
     publishedAt: status === STATUS.OPEN ? now : null,
     createdAt: now,
   }
   const r = await db.collection('events').add({ data: doc })
+  // 局主自己的报名记录 —— 见 common/signup.js hostInitialSignup 的说明
+  await db.collection('signups').add({
+    data: hostInitialSignup({ eventId: r._id, hostId: user._id, gender: user.gender, now }),
+  })
   await logStatus(r._id, transition(STATUS.DRAFT, status, { reason: '发布', at: now }))
   return { eventId: r._id, status }
 }

@@ -111,3 +111,32 @@ describe('候补递补', () => {
     assert.strictEqual(su.promoteFromWaitlist(wl, 10).length, 3)
   })
 })
+
+describe('局主自己的报名记录(D02 最低成团人数含局主)', () => {
+  const now = '2026-08-26T03:00:00.000Z'
+
+  test('发局时为局主建一条 confirmed 记录', () => {
+    const s = su.hostInitialSignup({ eventId: 'e1', hostId: 'u1', gender: GENDER.MALE, now })
+    assert.strictEqual(s.status, SIGNUP_STATUS.CONFIRMED)
+    assert.strictEqual(s.userId, 'u1')
+    assert.strictEqual(s.isHostSignup, true)
+  })
+
+  test('⚠️ 不建这条记录,咖啡局会变成需要 3 个人 —— 与 D02 相悖', () => {
+    // confirmedCount 是数 signups 得来的。局主算 1,再来 1 人即达到咖啡局的 min=2。
+    const host = su.hostInitialSignup({ eventId: 'e1', hostId: 'u1', gender: GENDER.MALE, now })
+    const guest = { status: SIGNUP_STATUS.CONFIRMED }
+    const confirmedCount = [host, guest].filter(s => s.status === SIGNUP_STATUS.CONFIRMED).length
+    assert.strictEqual(confirmedCount, 2, '局主 + 1 名报名者 = 2,恰好达到咖啡局最低人数')
+  })
+
+  test('局主不能单独退出自己的局 —— 否则局会没有主人', () => {
+    const host = su.hostInitialSignup({ eventId: 'e1', hostId: 'u1', gender: GENDER.MALE, now })
+    assert.strictEqual(su.canCancelSignup({ signup: host }), false)
+  })
+
+  test('普通报名者可以正常取消', () => {
+    assert.strictEqual(su.canCancelSignup({ signup: { isHostSignup: false } }), true)
+    assert.strictEqual(su.canCancelSignup({ signup: {} }), true)
+  })
+})

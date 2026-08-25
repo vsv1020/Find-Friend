@@ -63,7 +63,8 @@ async function pendingRatings(openid) {
       .where({ eventId: e._id, raterId: me._id }).get()).data
     const ratedIds = new Set(rated.map(r => r.rateeId))
     const remaining = others.filter(p => !ratedIds.has(p.userId))
-    if (remaining.length) out.push({ event: e, remaining })
+    // isHost 决定评价页以哪种身份打开:局主标记到场(影响爬约计数)vs 参与者互评(只影响分数)
+    if (remaining.length) out.push({ event: e, remaining, isHost: e.hostId === me._id })
   }
   return out
 }

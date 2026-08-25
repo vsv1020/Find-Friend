@@ -5,7 +5,7 @@
  * 本文件只负责事务、计数与副作用,规则本身有单元测试覆盖。
  */
 const cloud = require('wx-server-sdk')
-const { evaluate, promoteFromWaitlist } = require('./common/signup')
+const { evaluate, promoteFromWaitlist, canCancelSignup } = require('./common/signup')
 const { cancellationCounts, applyPenalty } = require('./common/reliability')
 const { SIGNUP_STATUS } = require('./common/rules')
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
@@ -77,6 +77,9 @@ async function cancelSignup({ eventId }, openid) {
     .where({ eventId, userId: user._id, status: _.in([SIGNUP_STATUS.CONFIRMED, SIGNUP_STATUS.WAITLIST]) })
     .limit(1).get()).data[0]
   if (!s) throw Object.assign(new Error('没有找到报名记录'), { code: 'not_found' })
+  if (!canCancelSignup({ signup: s })) {
+    throw Object.assign(new Error('你是局主,要取消请取消整个局'), { code: 'host_cannot_leave' })
+  }
 
   const e = (await db.collection('events').doc(eventId).get()).data
   await db.collection('signups').doc(s._id).update({

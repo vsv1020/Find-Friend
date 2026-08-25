@@ -77,4 +77,29 @@ function promoteFromWaitlist(waitlist, slots) {
   return waitlist.slice(0, slots)
 }
 
-module.exports = { evaluate, isGenderOverQuota, promoteFromWaitlist, REJECT }
+/**
+ * 局主自己的报名记录。
+ *
+ * ⚠️ D02 的最低成团人数**含局主**(咖啡局 2 人 = 局主 + 1 名报名者)。
+ * 而 confirmedCount 是数 signups 得来的,所以发局时必须同时为局主建一条 confirmed 记录,
+ * 否则会出现三个连锁问题:
+ *   1. 成团门槛凭空高一位 —— 咖啡局实际需要 3 个人;
+ *   2. 局主进不了自己局的行前沟通(canEnter 要求 confirmed 记录);
+ *   3. 局主不出现在待评价列表里,标记到场的入口根本打不开。
+ */
+function hostInitialSignup({ eventId, hostId, gender, now }) {
+  return {
+    eventId, userId: hostId, status: SIGNUP_STATUS.CONFIRMED,
+    gender, isHostSignup: true, createdAt: now,
+  }
+}
+
+/** 局主不能单独退出自己的局 —— 要走「取消整个局」,否则局会没有主人 */
+function canCancelSignup({ signup }) {
+  return !signup.isHostSignup
+}
+
+module.exports = {
+  evaluate, isGenderOverQuota, promoteFromWaitlist,
+  hostInitialSignup, canCancelSignup, REJECT,
+}
