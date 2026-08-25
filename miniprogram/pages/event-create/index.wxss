@@ -1,0 +1,12 @@
+.label { font-weight: 600; margin-bottom: 16rpx; }
+.scene-row, .slot-row { display: flex; gap: 16rpx; flex-wrap: wrap; }
+.scene-item { flex: 1; min-width: 180rpx; padding: 24rpx; border-radius: 12rpx; background: #f2f2f2; }
+.scene-item.active { background: #1a1a1a; color: #fff; }
+.scene-label { font-weight: 600; }
+.scene-hint { font-size: 22rpx; opacity: .7; margin-top: 6rpx; }
+.slot-item { padding: 20rpx 28rpx; border-radius: 999rpx; background: #f2f2f2; }
+.slot-item.active { background: #1a1a1a; color: #fff; }
+.venue-name { font-weight: 600; }
+.input { background: #f2f2f2; border-radius: 12rpx; padding: 24rpx; }
+.footer { padding: 24rpx; padding-bottom: calc(24rpx + env(safe-area-inset-bottom)); }
+.btn-primary.disabled { opacity: .5; }

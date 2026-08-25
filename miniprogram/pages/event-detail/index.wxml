@@ -25,6 +25,7 @@
 
   <view class="footer">
     <view class="btn-primary" bindtap="onTapSignup">我有空,报名</view>
+    <view class="btn-ghost" bindtap="onOpenPoster">生成海报,发朋友圈</view>
   </view>
 </block>
 

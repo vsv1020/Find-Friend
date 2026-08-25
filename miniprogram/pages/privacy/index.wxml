@@ -1,0 +1,23 @@
+<view wx:if="{{profile}}" class="card">
+  <view class="row"><text>昵称</text><text class="muted">{{profile.nickname}}</text></view>
+  <view class="row"><text>靠谱度</text><text class="muted">{{profile.reliability}}</text></view>
+</view>
+
+<view class="card">
+  <view class="item" bindtap="onExport">
+    <view>查看我的数据</view>
+    <view class="muted">导出我们持有的关于你的全部个人信息</view>
+  </view>
+</view>
+
+<view class="card">
+  <navigator class="item" url="/pages/privacy/policy">隐私政策</navigator>
+  <navigator class="item" url="/pages/privacy/terms">用户协议</navigator>
+</view>
+
+<view class="card">
+  <view class="item danger" bindtap="onDelete">
+    <view>注销账号</view>
+    <view class="muted">永久删除你的个人信息,不可恢复</view>
+  </view>
+</view>

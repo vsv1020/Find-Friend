@@ -2,8 +2,11 @@
   "pages": [
     "pages/index/index",
     "pages/event-detail/index",
+    "pages/event-create/index",
+    "pages/poster/index",
     "pages/signup-success/index",
     "pages/my/index",
+    "pages/privacy/index",
     "pages/admin/index"
   ],
   "window": {
@@ -15,7 +18,8 @@
   "tabBar": {
     "list": [
       { "pagePath": "pages/index/index", "text": "周末" },
-      { "pagePath": "pages/my/index", "text": "我的" }
+      { "pagePath": "pages/my/index",
+    "pages/privacy/index", "text": "我的" }
     ]
   },
   "permission": {

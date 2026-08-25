@@ -25,15 +25,16 @@ Page({
   },
 
   onLoad(query) {
-    // 小程序码带参进入时 query.scene 形如 "e=<eventId>"
-    const eventId = query.eventId || (query.scene || '').replace(/^e=/, '')
-    this.eventId = eventId
+    // 小程序码扫入时带的是 8 位分享短码(scene 有 32 字符上限,放不下 _id)
+    this.eventId = query.eventId || null
+    this.shareCode = query.scene || query.shareCode || null
     this.load()
   },
 
   async load() {
     try {
-      const event = await api.events.detail(this.eventId)
+      const event = await api.events.detail(this.eventId, this.shareCode)
+      this.eventId = event._id
       this.setData({
         loading: false,
         event: {
@@ -80,6 +81,10 @@ Page({
   onNicknameInput(e) { this.setData({ 'profile.nickname': e.detail.value }) },
   onGenderSelect(e) { this.setData({ 'profile.gender': e.currentTarget.dataset.value }) },
   onCloseSheet() { this.setData({ showProfileSheet: false }) },
+
+  onOpenPoster() {
+    wx.navigateTo({ url: `/pages/poster/index?eventId=${this.eventId}` })
+  },
 
   onOpenLocation() {
     const { venue } = this.data.event

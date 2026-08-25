@@ -13,6 +13,7 @@ const COLLECTIONS = [
   { name: 'events', indexes: [
     { keys: { status: 1, startAt: 1 } },
     { keys: { publishedAt: 1 } },
+    { keys: { shareCode: 1 }, unique: true, sparse: true },
     { keys: { hostId: 1 } },
   ]},
   { name: 'signups', indexes: [

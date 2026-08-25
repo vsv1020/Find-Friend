@@ -1,0 +1,11 @@
+<canvas type="2d" id="poster" style="position:fixed;left:-9999px;width:750px;height:1200px;"></canvas>
+
+<view wx:if="{{rendering}}" class="card muted">正在生成海报…</view>
+<view wx:elif="{{error}}" class="card muted">{{error}}</view>
+<block wx:else>
+  <image class="preview" src="{{previewPath}}" mode="widthFix" />
+  <view class="footer">
+    <view class="btn-primary" bindtap="onSave">保存到相册</view>
+    <view class="muted tip">小程序发不了朋友圈,保存成图片再发即可。别人长按识别就能进来。</view>
+  </view>
+</block>

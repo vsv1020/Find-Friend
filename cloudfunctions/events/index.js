@@ -10,6 +10,7 @@
 const cloud = require('wx-server-sdk')
 const { STATUS, resolveInitialStatus, transition, PUBLISHED } = require('./common/state-machine')
 const { SCENE_RULES } = require('./common/rules')
+const { generate: generateShareCode } = require('./common/sharecode')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -23,6 +24,7 @@ function publicEvent(e) {
   return {
     _id: e._id, sceneType: e.sceneType, startAt: e.startAt, durationMin: e.durationMin,
     venue: e.venue, capacityMin: e.capacityMin, capacityMax: e.capacityMax,
+    shareCode: e.shareCode,
     priceEstTHB: e.priceEstTHB, description: e.description, status: e.status,
     confirmedCount: e.confirmedCount || 0,
     // 注意:此处没有、也不应有 signups / hostId / 参与者昵称头像等任何身份信息
@@ -56,11 +58,24 @@ async function list() {
   return r.data.map(publicEvent)
 }
 
-async function detail({ eventId }) {
-  const r = await db.collection('events').doc(eventId).get().catch(() => null)
-  if (!r || !r.data) throw Object.assign(new Error('活动不存在'), { code: 'not_found' })
-  if (!PUBLISHED.includes(r.data.status)) throw Object.assign(new Error('活动不存在'), { code: 'not_found' })
-  return publicEvent(r.data)
+/**
+ * 按 _id 或分享短码取详情。
+ * 小程序码扫入时带的是短码(scene 有 32 字符上限,放不下 _id),因此两种都要支持。
+ */
+async function detail({ eventId, shareCode }) {
+  let doc = null
+  if (shareCode) {
+    const r = await db.collection('events').where({ shareCode }).limit(1).get()
+    doc = r.data[0] || null
+  } else if (eventId) {
+    const r = await db.collection('events').doc(eventId).get().catch(() => null)
+    doc = (r && r.data) || null
+  }
+  // 待审/被拒的局一律按「不存在」处理 —— 审核对报名者完全不可见(D06)
+  if (!doc || !PUBLISHED.includes(doc.status)) {
+    throw Object.assign(new Error('活动不存在'), { code: 'not_found' })
+  }
+  return publicEvent(doc)
 }
 
 /** 发局。初始状态由 D06 的全局开关与 D14 的局主免审白名单共同决定。 */
@@ -76,6 +91,7 @@ async function create(payload, openid) {
 
   const doc = {
     hostId: user._id,
+    shareCode: generateShareCode(),   // 小程序码用;数据库加唯一索引兜底碰撞
     sceneType: payload.sceneType,
     venue: payload.venue,            // D09 自由输入:{name, address, lat, lng}
     startAt: payload.startAt,

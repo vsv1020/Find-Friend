@@ -15,7 +15,7 @@ function call(name, action, data = {}) {
 module.exports = {
   events: {
     list: params => call('events', 'list', params),
-    detail: eventId => call('events', 'detail', { eventId }),
+    detail: (eventId, shareCode) => call('events', 'detail', { eventId, shareCode }),
     create: payload => call('events', 'create', payload),
     cancel: eventId => call('events', 'cancel', { eventId }),
     /** 报名成功页的推荐位:同时段还差人的其他局(PRD §6 的留存关键动作) */
@@ -25,6 +25,17 @@ module.exports = {
     join: (eventId, profile) => call('signups', 'join', { eventId, profile }),
     cancel: eventId => call('signups', 'cancel', { eventId }),
     mine: () => call('signups', 'mine'),
+  },
+  account: {
+    profile: () => call('account', 'profile'),
+    /** 隐私政策第七条承诺的「查看我们持有的关于你的信息」 */
+    exportMyData: () => call('account', 'exportMyData'),
+    /** PIPL 与 PDPA 下的强制入口,不可省略 */
+    deleteAccount: () => call('account', 'deleteAccount'),
+  },
+  poster: {
+    /** 小程序码带缓存,同一个局重复分享不会重复消耗 getUnlimited 配额 */
+    qrcode: eventId => call('poster', 'qrcode', { eventId }),
   },
   admin: {
     pending: () => call('admin', 'pendingReviews'),
