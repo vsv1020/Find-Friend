@@ -26,6 +26,15 @@ module.exports = {
     cancel: eventId => call('signups', 'cancel', { eventId }),
     mine: () => call('signups', 'mine'),
   },
+  rating: {
+    /** 我参加过、还在 7 天评价窗口内、且没评完的局 */
+    pending: () => call('rating', 'pendingRatings'),
+    participants: eventId => call('rating', 'participants', { eventId }),
+    /** 参与者互评:只影响分数,不触发任何处罚 */
+    rate: (eventId, rateeId, mark) => call('rating', 'rate', { eventId, rateeId, mark }),
+    /** 局主的事实认定:会影响爬约计数与报名限制 */
+    markAttendance: (eventId, marks) => call('rating', 'markAttendance', { eventId, marks }),
+  },
   account: {
     profile: () => call('account', 'profile'),
     /** 隐私政策第七条承诺的「查看我们持有的关于你的信息」 */

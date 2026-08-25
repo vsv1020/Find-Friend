@@ -1,0 +1,10 @@
+.title { font-size: 34rpx; font-weight: 600; margin-bottom: 12rpx; }
+.name { font-weight: 600; margin-bottom: 20rpx; }
+.mark-row { display: flex; gap: 16rpx; }
+.mark { flex: 1; text-align: center; padding: 20rpx; border-radius: 12rpx; background: #f2f2f2; }
+.mark.active.good { background: #1a1a1a; color: #fff; }
+.mark.active.warn { background: #d4741a; color: #fff; }
+.mark.active.bad  { background: #c0392b; color: #fff; }
+.footer { padding: 24rpx; padding-bottom: calc(24rpx + env(safe-area-inset-bottom)); }
+.tip { text-align: center; margin-top: 16rpx; }
+.btn-primary.disabled { opacity: .5; }

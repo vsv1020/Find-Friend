@@ -1,4 +1,15 @@
 <navigator class="card" url="/pages/privacy/index">账号与隐私</navigator>
+
+<!-- 待评价放在最上面:活动刚结束时评价意愿最高,埋在下面就没人评了 -->
+<view wx:if="{{pendingRatings.length}}" class="card">
+  <view class="section">这些局结束了</view>
+  <view wx:for="{{pendingRatings}}" wx:key="event._id" class="rec"
+        data-id="{{item.event._id}}" data-ishost="{{item.isHost}}" bindtap="onTapRating">
+    <view>{{item.startText}} · {{item.event.venue.name}}</view>
+    <view class="muted">还有 {{item.count}} 位同行者没评价</view>
+  </view>
+</view>
+
 <view wx:if="{{loading}}" class="card muted">加载中…</view>
 <view wx:elif="{{!signups.length}}" class="card muted">还没报名过任何局。</view>
 <view wx:for="{{signups}}" wx:key="_id" class="card">

@@ -1,0 +1,30 @@
+<view wx:if="{{loading}}" class="card muted">加载中…</view>
+
+<block wx:else>
+  <view class="card">
+    <view class="title">{{event.startText}} · {{event.venue.name}}</view>
+    <view class="muted">
+      {{isHost
+        ? '标一下谁来了。这会计入对方的爬约记录,请如实标记。'
+        : '一起去过的人怎么样?只评是否准时,不评别的。'}}
+    </view>
+  </view>
+
+  <view wx:if="{{!participants.length}}" class="card muted">这个局只有你一个人参加。</view>
+
+  <view wx:for="{{participants}}" wx:key="userId" class="card">
+    <view class="name">{{item.nickname}}</view>
+    <view class="mark-row">
+      <view wx:for="{{marks}}" wx:for-item="m" wx:key="value"
+            class="mark {{m.tone}} {{picked[item.userId] === m.value ? 'active' : ''}}"
+            data-userid="{{item.userId}}" data-mark="{{m.value}}" bindtap="onPick">{{m.label}}</view>
+    </view>
+  </view>
+
+  <view wx:if="{{participants.length}}" class="footer">
+    <view class="btn-primary {{submitting ? 'disabled' : ''}}" bindtap="onSubmit">
+      {{submitting ? '提交中…' : '提交'}}
+    </view>
+    <view class="muted tip">评价只有局主看得到,不会公开给其他参与者。</view>
+  </view>
+</block>
