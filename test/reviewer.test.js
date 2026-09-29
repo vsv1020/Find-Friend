@@ -96,3 +96,68 @@ describe('AI 评审:决策映射(模型是顾问不是法官)', () => {
     assert.strictEqual(r.decide(e, r.MODE.GATE), 'queue')
   })
 })
+
+describe('Jev 映射:问题构造', () => {
+  test('状态只含活动字段,不含任何身份字段', () => {
+    const { state } = r.buildJevQuestions({ ...event, hostId: 'u1', nickname: '小王', phone: '+66' })
+    assert.ok(!/u1|小王|\+66|hostId|phone|nickname/.test(state))
+    assert.match(state, /周六下午一起喝咖啡/)
+  })
+
+  test('verdict 是三选一的 Choice,六个风险标记各是一个布尔问题', () => {
+    const { questions } = r.buildJevQuestions(event)
+    assert.strictEqual(questions.verdict.type, 'choice')
+    assert.deepStrictEqual(Object.keys(questions.verdict.options).sort(), ['pass', 'reject', 'review'])
+    for (const f of r.RISK_FLAGS) assert.strictEqual(questions[`risk_${f}`].type, 'bool', f)
+  })
+})
+
+describe('Jev 映射:结果判读(与 interpret 同构,复用 decide)', () => {
+  const resp = (verdict, risks = {}, conf = 0.9) => ({
+    model: 'jev-1.13',
+    answers: {
+      verdict: { choice: verdict, confidence: conf },
+      ...Object.fromEntries(Object.entries(risks).map(([k, p]) => [`risk_${k}`, { value: p >= 0.5, probability: p }])),
+    },
+  })
+
+  test('干净的 pass', () => {
+    const out = r.interpretJev(resp('pass'))
+    assert.strictEqual(out.verdict, 'pass')
+    assert.deepStrictEqual(out.riskFlags, [])
+    assert.strictEqual(out.parsed, true)
+    assert.strictEqual(r.decide(out, r.MODE.GATE), 'publish')
+  })
+
+  test('命中风险标记时即使 verdict=pass 也降为 review —— 矛盾取保守方', () => {
+    const out = r.interpretJev(resp('pass', { dating_intent: 0.83 }))
+    assert.strictEqual(out.verdict, 'review')
+    assert.deepStrictEqual(out.riskFlags, ['dating_intent'])
+    assert.match(out.reasons[0], /dating_intent\(0\.83\)/)
+    assert.strictEqual(r.decide(out, r.MODE.GATE), 'queue')
+  })
+
+  test('概率低于阈值的布尔不算命中', () => {
+    const out = r.interpretJev(resp('pass', { commercial: 0.3 }))
+    assert.deepStrictEqual(out.riskFlags, [])
+  })
+
+  test('reject 也只是进人工队列 —— 模型永远不能直接拒人(与 LLM 路径一致)', () => {
+    assert.strictEqual(r.decide(r.interpretJev(resp('reject', { commercial: 0.95 })), r.MODE.GATE), 'queue')
+  })
+
+  test('响应缺 answers / verdict 非枚举 → review 且 parsed=false 或保守', () => {
+    assert.strictEqual(r.interpretJev(null).parsed, false)
+    assert.strictEqual(r.interpretJev({ answers: {} }).parsed, false)
+    assert.strictEqual(r.interpretJev({ answers: { verdict: { choice: 'approve' } } }).verdict, 'review')
+  })
+
+  test('字段命名容错:value / answer / p 也能读', () => {
+    const out = r.interpretJev({ answers: { verdict: { value: 'pass', confidence: 0.9 }, risk_one_on_one: { answer: true, p: 0.7 } } })
+    assert.deepStrictEqual(out.riskFlags, ['one_on_one'])
+  })
+
+  test('置信度不足即使 pass 也不放行', () => {
+    assert.strictEqual(r.decide(r.interpretJev(resp('pass', {}, 0.6)), r.MODE.GATE), 'queue')
+  })
+})

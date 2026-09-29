@@ -126,7 +126,117 @@ function onError(err) {
   }
 }
 
+// ============================================================
+// Jev(TypeSafe AI「System One」决策模型)的映射 —— 见 docs/09 §二
+//
+// Jev 不生成文本:输入「状态 + 带类型的问题」,输出每个问题的选项/布尔及概率、置信度,
+// 且保证模式合法。这与本模块「只收枚举」的设计天然一致 ——
+// 我们的 verdict 是 Choice,六个风险标记是六个布尔问题,置信度随答案返回。
+//
+// ⚠️ 官方文档(docs.typesafe.ai/api)在本开发环境不可达,下面的响应判读按公开摘要写成
+//    容错形式;部署前必须对照官方 API 参考核对一次字段名。
+// ============================================================
+
+/** 布尔风险问题判为「命中」的概率阈值 */
+const RISK_PROB_THRESHOLD = 0.5
+
+/** 风险标记 → 给 Jev 的问题文本(英文:Jev 以英文训练为主,问题用英文、状态保留原文) */
+const RISK_QUESTIONS = {
+  dating_intent: 'Does the activity description suggest dating, romance, or looking for a partner?',
+  commercial: 'Is this a sales pitch, recruitment, referral scheme, or an attempt to move people to another group?',
+  alcohol_minor: 'Does it involve alcohol together with any hint that minors may attend?',
+  unsafe_venue: 'Is the venue a private residence, hotel room, or otherwise not a public place?',
+  vague_or_fake: 'Is the activity information vague, implausible, or likely fabricated?',
+  one_on_one: 'Does it explicitly seek exactly one other person for a private one-on-one meeting?',
+}
+
+/**
+ * 把一个局映射成 Jev 的「状态 + 问题表」。
+ * 状态只含活动字段(与 buildReviewInput 同一口径),不含任何身份信息。
+ */
+function buildJevQuestions(event) {
+  const state = [
+    `scene: ${event.sceneType}`,
+    `start: ${event.startAt}`,
+    `venue: ${event.venue && event.venue.name} / ${event.venue && event.venue.address}`,
+    `capacity: ${event.capacityMax}`,
+    `price_thb: ${event.priceEstTHB}`,
+    `description: ${event.description || '(empty)'}`,
+  ].join('\n')
+
+  const questions = {
+    verdict: {
+      type: 'choice',
+      instructions: 'Is this activity suitable to be listed publicly on a weekend meetup platform that matches activities, never people?',
+      options: {
+        [VERDICT.PASS]: 'Clearly a normal group activity; nothing concerning.',
+        [VERDICT.REVIEW]: 'Ambiguous or borderline; a human should look.',
+        [VERDICT.REJECT]: 'Clearly violates the platform purpose or safety rules.',
+      },
+    },
+  }
+  for (const flag of RISK_FLAGS) {
+    questions[`risk_${flag}`] = { type: 'bool', instructions: RISK_QUESTIONS[flag] }
+  }
+  return { state, questions }
+}
+
+/** 从一个 Jev 答案里取「值」与「概率/置信度」,兼容几种可能的字段命名 */
+function readAnswer(a) {
+  if (a == null) return { value: undefined, prob: 0, confidence: 0 }
+  if (typeof a !== 'object') return { value: a, prob: 1, confidence: 1 }
+  const value = a.choice !== undefined ? a.choice
+    : a.value !== undefined ? a.value
+    : a.answer !== undefined ? a.answer
+    : a.result
+  const prob = Number(a.probability !== undefined ? a.probability
+    : a.p !== undefined ? a.p
+    : a.score !== undefined ? a.score : NaN)
+  const confidence = Number(a.confidence !== undefined ? a.confidence : NaN)
+  return {
+    value,
+    prob: Number.isFinite(prob) ? Math.min(1, Math.max(0, prob)) : (Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0),
+    confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
+  }
+}
+
+/**
+ * 判读 Jev 响应为与 interpret() 同构的结果,以便复用 decide()。
+ * Jev 不产文本,reasons 由命中的风险标记及其概率确定性生成。
+ * 保守原则同 interpret():结构异常 → review、parsed=false。
+ */
+function interpretJev(response) {
+  const fallback = { verdict: VERDICT.REVIEW, riskFlags: [], reasons: ['Jev 响应无法解析'], confidence: 0, parsed: false }
+  const answers = response && typeof response === 'object' && response.answers
+  if (!answers || typeof answers !== 'object') return fallback
+
+  const v = readAnswer(answers.verdict)
+  const verdict = Object.values(VERDICT).includes(v.value) ? v.value : VERDICT.REVIEW
+
+  const riskFlags = []
+  const reasons = []
+  for (const flag of RISK_FLAGS) {
+    const a = readAnswer(answers[`risk_${flag}`])
+    const hit = a.value === true || (a.value === undefined && a.prob >= RISK_PROB_THRESHOLD) ||
+                (typeof a.value === 'string' && a.value.toLowerCase() === 'true')
+    if (hit) {
+      riskFlags.push(flag)
+      reasons.push(`${flag}(${a.prob.toFixed(2)})`)
+    }
+  }
+  // 布尔问题命中但 verdict 仍说 pass:两者矛盾时取保守方,交人工
+  const finalVerdict = (verdict === VERDICT.PASS && riskFlags.length) ? VERDICT.REVIEW : verdict
+
+  return {
+    verdict: finalVerdict, riskFlags,
+    reasons: reasons.slice(0, 3),
+    confidence: v.confidence || v.prob,
+    parsed: answers.verdict !== undefined,
+  }
+}
+
 module.exports = {
-  VERDICT, MODE, RISK_FLAGS, GATE_MIN_CONFIDENCE,
+  VERDICT, MODE, RISK_FLAGS, GATE_MIN_CONFIDENCE, RISK_PROB_THRESHOLD,
   buildReviewInput, interpret, decide, onError,
+  buildJevQuestions, interpretJev,
 }
