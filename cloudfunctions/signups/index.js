@@ -106,7 +106,7 @@ async function cancelSignup({ eventId }, openid) {
   if (!r.cancelled) return { cancelled: false, penalty: null }   // 已被处理,幂等返回
 
   let penalty = null
-  if (r.wasConfirmed && cancellationCounts(e.status)) {
+  if (r.wasConfirmed && cancellationCounts(e.status, { rescheduledAt: e.rescheduledAt, now })) {
     const count = (user.noShowCount || 0) + 1
     penalty = applyPenalty(count, now)
     await db.collection('users').doc(user._id).update({

@@ -9,7 +9,8 @@
     "pages/privacy/index",
     "pages/rating/index",
     "pages/chat/index",
-    "pages/admin/index"
+    "pages/admin/index",
+    "pages/host/index"
   ],
   "window": {
     "navigationBarTitleText": "出去",
@@ -20,10 +21,7 @@
   "tabBar": {
     "list": [
       { "pagePath": "pages/index/index", "text": "周末" },
-      { "pagePath": "pages/my/index",
-    "pages/privacy/index",
-    "pages/rating/index",
-    "pages/chat/index", "text": "我的" }
+      { "pagePath": "pages/my/index", "text": "我的" }
     ]
   },
   "permission": {

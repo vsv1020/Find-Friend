@@ -78,7 +78,7 @@ function dedupeKey({ reporterId, targetType, targetId }) {
  * 代码里只提供"被封后哪些事做不了"的判定 —— 单一出口,各云函数共用,
  * 避免有的入口记得检查、有的忘了。
  */
-const BANNED_BLOCKED_ACTIONS = ['signup', 'create_event', 'send_message', 'rate', 'report']
+const BANNED_BLOCKED_ACTIONS = ['signup', 'create_event', 'send_message', 'rate', 'report', 'host_tools']
 
 /**
  * 用户当前是否被阻止执行某动作。

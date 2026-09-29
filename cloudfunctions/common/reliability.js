@@ -4,7 +4,7 @@
  * 记录只对局主可见(报名者列表中显示靠谱度),不向其他参与者公开 ——
  * 公开会制造评判感,与产品调性冲突。
  */
-const { NO_SHOW, EVENT_STATUS, RELIABILITY_MARK } = require('./rules')
+const { NO_SHOW, EVENT_STATUS, RELIABILITY_MARK, HOST_TOOLS } = require('./rules')
 
 const HOUR = 3600 * 1000
 
@@ -13,9 +13,16 @@ const HOUR = 3600 * 1000
  * open 状态下取消不算 —— 鼓励尽早取消,把位置让出来。
  * @param {string} eventStatus 取消发生时该局的状态
  */
-function cancellationCounts(eventStatus) {
+function cancellationCounts(eventStatus, { rescheduledAt, now } = {}) {
   if (eventStatus === EVENT_STATUS.OPEN) return NO_SHOW.countCancelBeforeFormed
-  if (eventStatus === EVENT_STATUS.FORMED) return NO_SHOW.countCancelAfterFormed
+  if (eventStatus === EVENT_STATUS.FORMED) {
+    // 局主刚改过期:参与者是因为局主单方面变更才来不了的,免罚窗口内取消不记爬约
+    if (rescheduledAt && now &&
+        new Date(now).getTime() - new Date(rescheduledAt).getTime() < HOST_TOOLS.rescheduleGraceHours * HOUR) {
+      return false
+    }
+    return NO_SHOW.countCancelAfterFormed
+  }
   return false
 }
 

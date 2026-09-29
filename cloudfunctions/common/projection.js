@@ -28,4 +28,21 @@ function publicEvent(e) {
   return out
 }
 
-module.exports = { publicEvent, PUBLIC_EVENT_FIELDS, FORBIDDEN_EVENT_FIELDS }
+/**
+ * 调用者视角的附加字段,拼在 publicEvent 之外。
+ * 只返回布尔的 isHost,不返回 hostId —— 布尔值回答「我是不是局主」,
+ * hostId 却能让任何人把局和人串起来。
+ * @param {object|null} user    调用者(未注册为 null)
+ * @param {object} event        原始局文档
+ * @param {object|null} signup  调用者在该局的报名记录
+ */
+function viewerOf({ user, event, signup }) {
+  return {
+    isHost: Boolean(user && event && user._id && event.hostId === user._id),
+    signupStatus: (signup && signup.status) || null,
+  }
+}
+
+const VIEWER_FIELDS = ['isHost', 'signupStatus']
+
+module.exports = { publicEvent, viewerOf, PUBLIC_EVENT_FIELDS, FORBIDDEN_EVENT_FIELDS, VIEWER_FIELDS }

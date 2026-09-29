@@ -102,10 +102,11 @@ async function doRally(e, now, verdict) {
     .where({ _id: e._id, rallyNoticeSentAt: _.eq(null) })
     .update({ data: { rallyNoticeSentAt: now } })
   if (!r.stats.updated) return
-  await notifyParticipants(e._id, 'event_rally', { shortBy: verdict.shortBy })
+  // 去重键带上开始时间:改期后 rallyNoticeSentAt 被置空,新时间的催报名要能再发一次
+  await notifyParticipants(e._id, 'event_rally', { shortBy: verdict.shortBy }, e.startAt)
 }
 
-async function notifyParticipants(eventId, templateKey, payload = {}) {
+async function notifyParticipants(eventId, templateKey, payload = {}, keySuffix = '') {
   const signups = (await db.collection('signups')
     .where({ eventId, status: _.in(['confirmed', 'waitlist']) }).limit(100).get()).data
   const now = new Date().toISOString()
@@ -115,7 +116,7 @@ async function notifyParticipants(eventId, templateKey, payload = {}) {
         userId: s.userId, eventId, templateKey, payload,
         channel: 'wx_subscribe', status: 'pending',
         // 去重键:同一用户、同一局、同一模板只发一次
-        dedupeKey: `${s.userId}:${eventId}:${templateKey}`,
+        dedupeKey: `${s.userId}:${eventId}:${templateKey}${keySuffix ? ':' + keySuffix : ''}`,
         createdAt: now,
       },
     }).catch(() => { /* 唯一索引冲突即已发过,忽略 */ })

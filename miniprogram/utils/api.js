@@ -17,7 +17,6 @@ module.exports = {
     list: params => call('events', 'list', params),
     detail: (eventId, shareCode) => call('events', 'detail', { eventId, shareCode }),
     create: payload => call('events', 'create', payload),
-    cancel: eventId => call('events', 'cancel', { eventId }),
     /** 报名成功页的推荐位:同时段还差人的其他局(PRD §6 的留存关键动作) */
     recommend: eventId => call('events', 'recommend', { eventId }),
   },
@@ -55,6 +54,13 @@ module.exports = {
   poster: {
     /** 小程序码带缓存,同一个局重复分享不会重复消耗 getUnlimited 配额 */
     qrcode: eventId => call('poster', 'qrcode', { eventId }),
+  },
+  host: {
+    /** 仅限自己的局:昵称 + 靠谱度 + 爬约次数(D10 仅局主可见) */
+    roster: eventId => call('host', 'roster', { eventId }),
+    broadcast: (eventId, content) => call('host', 'broadcast', { eventId, content }),
+    reschedule: (eventId, startAt) => call('host', 'reschedule', { eventId, startAt }),
+    cancel: (eventId, reason) => call('host', 'cancel', { eventId, reason }),
   },
   admin: {
     pending: () => call('admin', 'pendingReviews'),

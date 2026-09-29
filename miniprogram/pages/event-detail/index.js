@@ -95,6 +95,10 @@ Page({
     wx.navigateTo({ url: `/pages/poster/index?eventId=${this.eventId}` })
   },
 
+  onOpenHostTools() {
+    wx.navigateTo({ url: `/pages/host/index?eventId=${this.eventId}` })
+  },
+
   onOpenLocation() {
     const { venue } = this.data.event
     if (venue && venue.lat) wx.openLocation({ latitude: venue.lat, longitude: venue.lng, name: venue.name, address: venue.address })

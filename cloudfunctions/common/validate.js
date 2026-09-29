@@ -26,6 +26,8 @@ const LIMITS = {
   priceMax: 100000,
   /** 局主一次标记的人数上限(防超大数组拖垮循环) */
   attendanceMarksMax: 20,
+  /** 文档 _id / 分享短码:只做类型与长度防线,防对象被当成查询条件传进 where */
+  id: 64,
 }
 
 /** 性别必须是枚举之一 —— 这是字段注入的防线,不是格式洁癖 */
@@ -57,6 +59,20 @@ function validISO(v) {
 }
 
 /**
+ * 开始时间的「过近/过远」边界。发局与改期共用同一口径 ——
+ * 改期若另写一套,局主就能先发一个远期局再改到判定窗口里,绕过发局校验。
+ * @param {string} startAt 已过 validISO 的时间串
+ * @returns {null|'startAt_too_soon'|'startAt_too_far'}
+ */
+function startAtWindowError(startAt, now) {
+  const diff = new Date(startAt).getTime() - new Date(now).getTime()
+  // 距开始必须留出判定提前量 + 1 小时缓冲,否则发出去就被判解散(与发局表单口径一致)
+  if (diff < (FORMATION.judgeBeforeStartHours + 1) * HOUR) return 'startAt_too_soon'
+  if (diff > MAX_DAYS_AHEAD * 24 * HOUR) return 'startAt_too_far'
+  return null
+}
+
+/**
  * 发局载荷校验。返回 {ok, errors[], value} —— value 是清洗后的安全版本,
  * 云函数只允许使用 value,不允许回头碰原始 payload。
  */
@@ -70,11 +86,8 @@ function validateEventPayload(payload, now) {
   const startAt = validISO(p.startAt)
   if (!startAt) errors.push('startAt')
   else {
-    const nowMs = new Date(now).getTime()
-    const startMs = new Date(startAt).getTime()
-    // 距开始必须留出判定提前量 + 1 小时缓冲,否则发出去就被判解散(与发局表单口径一致)
-    if (startMs - nowMs < (FORMATION.judgeBeforeStartHours + 1) * HOUR) errors.push('startAt_too_soon')
-    if (startMs - nowMs > MAX_DAYS_AHEAD * 24 * HOUR) errors.push('startAt_too_far')
+    const windowError = startAtWindowError(startAt, now)
+    if (windowError) errors.push(windowError)
   }
 
   const venue = p.venue || {}
@@ -124,6 +137,6 @@ function validateProfile(profile) {
 
 module.exports = {
   validGender, validString, validNumber, validISO,
-  validateEventPayload, validateProfile,
+  validateEventPayload, validateProfile, startAtWindowError,
   LIMITS, MAX_DAYS_AHEAD,
 }

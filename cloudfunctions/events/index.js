@@ -14,8 +14,8 @@ const { generate: generateShareCode } = require('./common/sharecode')
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 const { hostInitialSignup } = require('./common/signup')
 const { isBlocked } = require('./common/report')
-const { publicEvent } = require('./common/projection')
-const { validateEventPayload } = require('./common/validate')
+const { publicEvent, viewerOf } = require('./common/projection')
+const { validateEventPayload, validString, LIMITS } = require('./common/validate')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -31,9 +31,8 @@ exports.main = async (event) => {
   try {
     switch (action) {
       case 'list':     return ok(await list(event))
-      case 'detail':   return ok(await detail(event))
+      case 'detail':   return ok(await detail(event, OPENID))
       case 'create':   return ok(await create(event, OPENID))
-      case 'cancel':   return ok(await cancel(event, OPENID))
       case 'recommend':return ok(await recommend(event))
       case 'track':    return ok(await track(event, OPENID))
       default:         return fail('unknown_action', `未知操作: ${action}`)
@@ -56,7 +55,9 @@ async function list() {
  * 按 _id 或分享短码取详情。
  * 小程序码扫入时带的是短码(scene 有 32 字符上限,放不下 _id),因此两种都要支持。
  */
-async function detail({ eventId, shareCode }) {
+async function detail({ eventId: rawId, shareCode: rawCode }, openid) {
+  const shareCode = validString(rawCode, LIMITS.id)
+  const eventId = validString(rawId, LIMITS.id)
   let doc = null
   if (shareCode) {
     const r = await db.collection('events').where({ shareCode }).limit(1).get()
@@ -65,11 +66,27 @@ async function detail({ eventId, shareCode }) {
     const r = await db.collection('events').doc(eventId).get().catch(() => null)
     doc = (r && r.data) || null
   }
-  // 待审/被拒的局一律按「不存在」处理 —— 审核对报名者完全不可见(D06)
-  if (!doc || !PUBLISHED.includes(doc.status)) {
+  if (!doc) throw Object.assign(new Error('活动不存在'), { code: 'not_found' })
+  // viewer 拼在白名单投影之外,只对调用者本人有意义
+  const viewer = await viewerFor(doc, openid)
+    .catch(() => viewerOf({ user: null, event: doc, signup: null }))
+  // 待审/被拒的局对报名者完全不可见(D06),按「不存在」处理;
+  // 但局主本人必须能看到「审核中」,否则不知道自己的局为什么没出现
+  if (!PUBLISHED.includes(doc.status) && !viewer.isHost) {
     throw Object.assign(new Error('活动不存在'), { code: 'not_found' })
   }
-  return publicEvent(doc)
+  return { ...publicEvent(doc), viewer }
+}
+
+/** 未登录/无账号不是错误 —— 局详情必须未登录可浏览 */
+async function viewerFor(doc, openid) {
+  if (!openid) return viewerOf({ user: null, event: doc, signup: null })
+  const user = (await db.collection('users').where({ openid }).limit(1)
+    .field({ _id: true }).get()).data[0] || null
+  if (!user) return viewerOf({ user: null, event: doc, signup: null })
+  const signup = (await db.collection('signups').where({ eventId: doc._id, userId: user._id })
+    .limit(1).field({ status: true }).get()).data[0] || null
+  return viewerOf({ user, event: doc, signup })
 }
 
 /** 发局。初始状态由 D06 的全局开关与 D14 的局主免审白名单共同决定。 */
@@ -134,18 +151,6 @@ async function create(payload, openid) {
   })
   await logStatus(r._id, transition(STATUS.DRAFT, status, { reason: '发布', at: now }))
   return { eventId: r._id, status }
-}
-
-/** 局主取消。D01:计入成团率分母且算未成团,不给刷分留口子。 */
-async function cancel({ eventId }, openid) {
-  const user = await getUser(openid)
-  const e = (await db.collection('events').doc(eventId).get()).data
-  if (e.hostId !== user._id && !user.isAdmin) throw Object.assign(new Error('无权取消'), { code: 'forbidden' })
-  const now = new Date().toISOString()
-  const rec = transition(e.status, STATUS.CANCELLED_HOST, { reason: '局主取消', at: now })
-  await db.collection('events').doc(eventId).update({ data: { status: rec.status, cancelledAt: now } })
-  await logStatus(eventId, rec)
-  return { status: rec.status }
 }
 
 /**

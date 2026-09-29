@@ -72,6 +72,7 @@ async function list({ eventId, since }, openid) {
       _id: m._id, content: m.content, createdAt: m.createdAt,
       nickname: nicknames[m.userId] || '这位朋友',
       isMine: m.userId === me._id,
+      isBroadcast: Boolean(m.isBroadcast),   // 局主群发的系统消息,前端加标识
     })),
   }
 }

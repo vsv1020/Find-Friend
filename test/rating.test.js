@@ -86,3 +86,21 @@ describe('⚠️ 事实认定与主观评价的边界', () => {
     assert.ok(r.every(x => rel.scoreDelta(x.mark) >= 0), '默认处理不能扣任何人的分')
   })
 })
+
+describe('改期免罚(T23 发现 #3)', () => {
+  const rel2 = require('../cloudfunctions/common/reliability')
+  test('局主刚改期,24 小时内 formed 取消不记爬约 —— 不让参与者为局主的决定背锅', () => {
+    assert.strictEqual(rel2.cancellationCounts('formed', {
+      rescheduledAt: '2026-08-28T00:00:00Z', now: '2026-08-28T10:00:00Z',
+    }), false)
+  })
+  test('免罚窗口过后恢复正常计数', () => {
+    assert.strictEqual(rel2.cancellationCounts('formed', {
+      rescheduledAt: '2026-08-26T00:00:00Z', now: '2026-08-28T10:00:00Z',
+    }), true)
+  })
+  test('未改期的局不受影响;旧调用方式(单参数)仍兼容', () => {
+    assert.strictEqual(rel2.cancellationCounts('formed'), true)
+    assert.strictEqual(rel2.cancellationCounts('formed', {}), true)
+  })
+})

@@ -93,6 +93,15 @@ const REVIEW = {
    * 无论 autoApprove 为何值。这是「给权限不给钱」激励的核心载体。
    */
   hostBypassReview: true,
+  /**
+   * AI 辅助预审模式(见 docs/09):off | advisory | gate。
+   * 运行时以 settings.global.aiPrecheck 为准,此处仅为默认值。
+   * advisory:模型建议只进 reviewQueue,不改任何局的状态;gate:高置信 pass 才自动放行。
+   * 模型的 reject 在任何模式下都不会直接生效 —— 那是人的权力。
+   */
+  aiPrecheck: 'off',
+  /** 预审调用超时(毫秒)。发局是同步路径,超时即降级为未评审,不能拖住用户 */
+  aiPrecheckTimeoutMs: 8000,
 }
 
 /**
@@ -227,6 +236,13 @@ const HOST_TOOLS = {
   cancelReasonMaxLength: 100,
   /** 名单与通知查询的上限。人数硬顶 10 + 候补,100 足够;防超大结果集拖垮循环 */
   rosterQueryLimit: 100,
+  /**
+   * 改期免罚窗口(小时)。formed 之后取消本应记爬约(D10),但改期是局主单方面改变了约定 ——
+   * 改动后来不了的人在此窗口内取消不记爬约,否则等于让参与者为局主的决定背锅。
+   */
+  rescheduleGraceHours: 24,
+  /** 改期冷却(分钟)。每改一次全员收一条通知,反复改期就是骚扰 */
+  rescheduleCooldownMinutes: 60,
 }
 
 /**

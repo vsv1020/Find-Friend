@@ -9,7 +9,7 @@
 
   <view wx:for="{{messages}}" wx:key="_id" id="msg-{{item._id}}" class="msg {{item.isMine ? 'mine' : ''}}"
         data-id="{{item._id}}" data-mine="{{item.isMine}}" bindlongpress="onLongPressMessage">
-    <view wx:if="{{!item.isMine}}" class="who">{{item.nickname}}</view>
+    <view wx:if="{{!item.isMine}}" class="who">{{item.nickname}}{{item.isBroadcast ? ' · 局主通知' : ''}}</view>
     <view class="bubble">{{item.content}}</view>
   </view>
 </scroll-view>
