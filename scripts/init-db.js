@@ -20,6 +20,7 @@ const COLLECTIONS = [
     { keys: { eventId: 1, userId: 1 }, unique: true },
     { keys: { eventId: 1, status: 1, createdAt: 1 } },
     { keys: { userId: 1, createdAt: -1 } },
+    { keys: { status: 1, createdAt: -1 } },   // 运营看板按 attended 拉取复购数据
   ]},
   // eventId + createdAt 是轮询拉增量的关键索引
   { name: 'messages', indexes: [{ keys: { eventId: 1, createdAt: 1 } }] },

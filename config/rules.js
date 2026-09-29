@@ -176,6 +176,17 @@ const METRICS = {
   repeatParticipationRateTarget: 0.35, // 30 天内二次参加
   signupConversionRateTarget: 0.25,    // 详情页打开 → 完成报名
   organicHostShareTarget: 0.5,         // 非官方局占比,8 周内
+  /** 二次参加的观察窗口(天):首次 attended 后该天数内(按曼谷自然日,含当天)再次 attended 记为复购 */
+  repeatWindowDays: 30,
+  /** 看板趋势展示的周数,与 organicTargetWeeks 同为 8 周但含义不同(展示跨度 vs 达标期限) */
+  trendWeeks: 8,
+  /** 报名漏斗只看最近 N 天的埋点 —— 冷启动期的历史流量结构与现在差异太大,全量平均会失真 */
+  funnelLookbackDays: 30,
+  /**
+   * 看板单次拉取上限。云函数超时 3s(默认),再大就要改走离线聚合;
+   * 触顶时 admin 云函数会在返回里标记 truncated,提示数字已不完整。
+   */
+  dashboardFetchLimit: { events: 1000, signups: 2000, analyticsEvents: 5000 },
 }
 
 /** 局状态机(见 docs/02 §4)。状态流转必须写入 eventStatusLog 便于排障。 */
@@ -206,6 +217,19 @@ const CHAT = {
 }
 
 /**
+ * T23 局主工具包
+ * 群发走订阅消息,一个局主刷屏会让报名者直接拒收整个模板 ——
+ * 拒收是账号级的,伤害的是所有局主,所以冷却是硬限制,不是体验优化。
+ */
+const HOST_TOOLS = {
+  broadcastCooldownMinutes: 10,
+  broadcastMaxLength: 200,
+  cancelReasonMaxLength: 100,
+  /** 名单与通知查询的上限。人数硬顶 10 + 候补,100 足够;防超大结果集拖垮循环 */
+  rosterQueryLimit: 100,
+}
+
+/**
  * 通知通道(见 docs/03 §4 §9)
  * ⚠️ getPhoneNumber 返回的是微信绑定的手机号(目标用户大多为 +86),
  *    不等于用户在泰国能收到短信的号码 —— 因此手机号只作账号唯一性锚点,
@@ -224,5 +248,5 @@ module.exports = {
   VENUE, NO_SHOW, RELIABILITY_MARK,
   DEPOSIT, METRICS,
   EVENT_STATUS, SIGNUP_STATUS,
-  CHAT, NOTIFY,
+  CHAT, NOTIFY, HOST_TOOLS,
 }

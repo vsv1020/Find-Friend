@@ -148,7 +148,11 @@ async function markAttendance({ eventId, marks }, openid) {
 
     const attended = mark !== RELIABILITY_MARK.NO_SHOW
     await db.collection('signups').doc(s._id).update({
-      data: { status: attended ? SIGNUP_STATUS.ATTENDED : SIGNUP_STATUS.NO_SHOW, markedAt: now },
+      data: {
+        status: attended ? SIGNUP_STATUS.ATTENDED : SIGNUP_STATUS.NO_SHOW, markedAt: now,
+        // attendedAt 是复购统计的时间基准;用活动结束时间而非标记时间,局主晚几天标不影响口径
+        ...(attended ? { attendedAt: e.endedAt || now } : {}),
+      },
     })
 
     const u = (await db.collection('users').doc(userId).get()).data

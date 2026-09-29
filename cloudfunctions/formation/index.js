@@ -61,6 +61,11 @@ exports.main = async () => {
       const rec = transition(e.status, STATUS.ARCHIVED, { reason: '结束满48小时', at: now })
       await db.collection('events').doc(e._id).update({ data: { status: rec.status, chatArchivedAt: now } })
       await log(e._id, rec)
+      // 局主 48 小时内没标记到场的,按 D10「宁可漏判不误判」默认全部到场。
+      // 没有这一步,attended 完全依赖局主手动标记,复购率会被系统性低估。
+      await db.collection('signups')
+        .where({ eventId: e._id, status: 'confirmed' })
+        .update({ data: { status: 'attended', attendedAt: e.endedAt || now, attendanceDefaulted: true } })
       summary.archived++
     } catch (err) { summary.errors.push({ eventId: e._id, message: err.message }) }
   }

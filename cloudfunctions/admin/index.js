@@ -6,7 +6,12 @@
  */
 const cloud = require('wx-server-sdk')
 const { STATUS, transition } = require('./common/state-machine')
-const { northStar } = require('./common/metrics')
+const { dashboard, FUNNEL } = require('./common/metrics')
+const { METRICS, SIGNUP_STATUS } = require('./common/rules')
+
+const DAY_MS = 24 * 3600 * 1000
+/** 服务端单次 get 最多返回 1000 条(平台限制),超过需分页 */
+const DB_PAGE_SIZE = 1000
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -77,13 +82,51 @@ async function setHost({ userId, isHost }) {
 }
 
 /** D12 双指标看板 */
+/**
+ * 运营看板:D12 双指标 + PRD §8 辅助指标 + 周趋势。
+ * 只取计算所需字段,只返回聚合数字 —— 看板不是按人检索用户的入口。
+ */
 async function metrics() {
-  const events = (await db.collection('events').where({ publishedAt: _.neq(null) }).limit(1000).get()).data
-  const settings = await db.collection('settings').doc('global').get().catch(() => null)
+  const now = new Date()
+  const since = new Date(now.getTime() - METRICS.funnelLookbackDays * DAY_MS).toISOString()
+  const cap = METRICS.dashboardFetchLimit
+
+  const [events, signups, analyticsEvents, settings] = await Promise.all([
+    fetchUpTo(db.collection('events')
+      .where({ publishedAt: _.neq(null) })
+      .orderBy('publishedAt', 'desc')
+      .field({ status: true, isOfficial: true, adminFilledIn: true, publishedAt: true, startAt: true }),
+    cap.events),
+    fetchUpTo(db.collection('signups')
+      .where({ status: SIGNUP_STATUS.ATTENDED })
+      .orderBy('createdAt', 'desc')
+      .field({ userId: true, status: true, createdAt: true }),
+    cap.signups),
+    fetchUpTo(db.collection('analyticsEvents')
+      .where({ name: _.in(Object.values(FUNNEL)), createdAt: _.gte(since) })
+      .orderBy('createdAt', 'desc')
+      .field({ name: true, anonId: true, openid: true, createdAt: true }),
+    cap.analyticsEvents),
+    db.collection('settings').doc('global').get().catch(() => null),
+  ])
+
   return {
-    ...northStar(events),
+    ...dashboard({ events: events.data, signups: signups.data, analyticsEvents: analyticsEvents.data, now }),
     autoApprove: Boolean(settings && settings.data && settings.data.autoApprove),
+    // 触顶说明数字只基于最近的一部分数据,前端据此提示「数据不完整」
+    truncated: {
+      events: events.truncated, signups: signups.truncated, analyticsEvents: analyticsEvents.truncated,
+    },
   }
+}
+
+/** 分页并发拉取至多 max 条。并发而非逐页串行,是为了不撞云函数默认 3 秒超时。 */
+async function fetchUpTo(query, max) {
+  const pages = Math.ceil(max / DB_PAGE_SIZE)
+  const results = await Promise.all(Array.from({ length: pages }, (_x, i) =>
+    query.skip(i * DB_PAGE_SIZE).limit(Math.min(DB_PAGE_SIZE, max - i * DB_PAGE_SIZE)).get()))
+  const data = results.flatMap(r => r.data)
+  return { data, truncated: data.length >= max }
 }
 
 /** 待处理的举报,含被举报时的内容快照 */

@@ -7,8 +7,32 @@
 const api = require('../../utils/api')
 const fmt = require('../../utils/format')
 
+const pct = r => (r === null || r === undefined ? '—' : `${Math.round(r * 100)}%`)
+
+/**
+ * 把看板数字整理成可直接渲染的结构。
+ * 周趋势的条宽以所有周里最大的公开数为 100%,成团与非官方都是公开的子集,不会溢出。
+ */
+function dashboardView(m) {
+  if (!m || !m.funnel) return null   // 云函数尚未部署新版时不渲染看板,旧卡片照常显示
+  const maxPublished = Math.max(1, ...m.weekly.map(w => w.published))
+  const width = n => `${Math.round((n / maxPublished) * 100)}%`
+  const t = m.truncated || {}
+  return {
+    funnel: { ...m.funnel, rateText: pct(m.funnel.viewToSignupRate), targetText: pct(m.funnel.target) },
+    repeat: { ...m.repeat, rateText: pct(m.repeat.rate), targetText: pct(m.repeat.target) },
+    share: { ...m.organicHostShare, rateText: pct(m.organicHostShare.share), targetText: pct(m.organicHostShare.target) },
+    weekly: m.weekly.map(w => ({
+      ...w,
+      label: w.weekStart.slice(5),
+      publishedWidth: width(w.published), formedWidth: width(w.formed), organicWidth: width(w.organic),
+    })),
+    truncated: Boolean(t.events || t.signups || t.analyticsEvents),
+  }
+}
+
 Page({
-  data: { pending: [], reports: [], metrics: null, autoApprove: false, loading: true },
+  data: { pending: [], reports: [], metrics: null, board: null, autoApprove: false, loading: true },
 
   onShow() { this.load() },
 
@@ -20,6 +44,7 @@ Page({
       this.setData({
         loading: false,
         metrics,
+        board: dashboardView(metrics),
         autoApprove: metrics.autoApprove,
         pending: pending.map(e => ({ ...e, startText: fmt.formatStart(e.startAt) })),
         reports,

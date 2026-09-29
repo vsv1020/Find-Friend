@@ -1,0 +1,21 @@
+
+.dash-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
+.met { color: #2e8b57; font-weight: 600; }
+.unmet { color: #d4741a; font-size: 24rpx; }
+
+.funnel { display: flex; margin-bottom: 12rpx; }
+.funnel-cell { flex: 1; text-align: center; padding: 12rpx 0; margin: 0 6rpx; background: #f7f7f7; border-radius: 12rpx; }
+.funnel-num { font-size: 40rpx; font-weight: 600; }
+
+.legend { margin-bottom: 12rpx; }
+.dot { display: inline-block; width: 16rpx; height: 16rpx; border-radius: 50%; margin: 0 6rpx 0 16rpx; }
+.week { display: flex; align-items: center; padding: 8rpx 0; }
+.week-label { width: 88rpx; flex-shrink: 0; }
+.week-bars { flex: 1; }
+.bar-row { display: flex; align-items: center; height: 24rpx; }
+.bar-track { flex: 1; }
+.bar { height: 12rpx; border-radius: 6rpx; }
+.bar-num { width: 56rpx; flex-shrink: 0; text-align: right; font-size: 22rpx; color: #8a8a8a; }
+.bar-published { background: #c9c9c9; }
+.bar-formed { background: #1a1a1a; }
+.bar-organic { background: #d4741a; }

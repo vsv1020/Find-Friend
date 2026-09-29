@@ -6,10 +6,62 @@
 
 <view wx:if="{{metrics}}" class="card">
   <view style="font-weight:600;margin-bottom:12rpx;">成团率</view>
-  <view>整体 {{metrics.overall.formed}}/{{metrics.overall.total}} · 目标 60%</view>
+  <view>整体 {{metrics.overall.formed}}/{{metrics.overall.total}} · 目标 {{metrics.overall.target * 100}}%</view>
   <!-- 真北极星:官方局与补位局已剔除,这才是产品能否自己跑的信号 -->
-  <view>自然局 {{metrics.organic.formed}}/{{metrics.organic.total}} · 目标 40%</view>
+  <view>自然局 {{metrics.organic.formed}}/{{metrics.organic.total}} · 目标 {{metrics.organic.target * 100}}%</view>
 </view>
+
+<block wx:if="{{board}}">
+  <view wx:if="{{board.truncated}}" class="card muted">数据量已触及单次拉取上限,以下数字只覆盖最近的一部分记录。</view>
+
+  <view class="card">
+    <view class="dash-head">
+      <text style="font-weight:600;">报名转化 · 近 {{board.funnel.lookbackDays}} 天</text>
+      <text class="{{board.funnel.met ? 'met' : 'unmet'}}">{{board.funnel.met ? '✓' : '未达标'}}</text>
+    </view>
+    <view class="funnel">
+      <view class="funnel-cell"><view class="funnel-num">{{board.funnel.views}}</view><view class="muted">浏览</view></view>
+      <view class="funnel-cell"><view class="funnel-num">{{board.funnel.starts}}</view><view class="muted">开始报名</view></view>
+      <view class="funnel-cell"><view class="funnel-num">{{board.funnel.successes}}</view><view class="muted">报名成功</view></view>
+    </view>
+    <view>浏览 → 报名 {{board.funnel.rateText}} · 目标 {{board.funnel.targetText}}</view>
+    <view class="muted">按去重访客计</view>
+  </view>
+
+  <view class="card">
+    <view class="dash-head">
+      <text style="font-weight:600;">{{board.repeat.windowDays}} 天复购率</text>
+      <text class="{{board.repeat.met ? 'met' : 'unmet'}}">{{board.repeat.met ? '✓' : '未达标'}}</text>
+    </view>
+    <view>{{board.repeat.repeaters}}/{{board.repeat.users}} · {{board.repeat.rateText}} · 目标 {{board.repeat.targetText}}</view>
+    <!-- 首次参加不满窗口的人结果未揭晓,不进分母 -->
+    <view wx:if="{{board.repeat.pending}}" class="muted">另有 {{board.repeat.pending}} 人观察期未满</view>
+  </view>
+
+  <view class="card">
+    <view class="dash-head">
+      <text style="font-weight:600;">非官方局占比</text>
+      <text class="{{board.share.met ? 'met' : 'unmet'}}">{{board.share.met ? '✓' : '未达标'}}</text>
+    </view>
+    <view>{{board.share.organic}}/{{board.share.total}} · {{board.share.rateText}} · 目标 {{board.share.targetText}}</view>
+  </view>
+
+  <view class="card">
+    <view style="font-weight:600;margin-bottom:12rpx;">近 {{board.weekly.length}} 周趋势</view>
+    <view class="legend muted">
+      <text class="dot bar-published"></text>公开 <text class="dot bar-formed"></text>成团 <text class="dot bar-organic"></text>非官方
+    </view>
+    <view wx:for="{{board.weekly}}" wx:key="weekStart" class="week">
+      <view class="week-label muted">{{item.label}}</view>
+      <view class="week-bars">
+        <view class="bar-row"><view class="bar-track"><view class="bar bar-published" style="width:{{item.publishedWidth}};"></view></view><text class="bar-num">{{item.published}}</text></view>
+        <view class="bar-row"><view class="bar-track"><view class="bar bar-formed" style="width:{{item.formedWidth}};"></view></view><text class="bar-num">{{item.formed}}</text></view>
+        <view class="bar-row"><view class="bar-track"><view class="bar bar-organic" style="width:{{item.organicWidth}};"></view></view><text class="bar-num">{{item.organic}}</text></view>
+      </view>
+    </view>
+    <view class="muted">按活动开始时间归周(曼谷时间,周一起);本周多数局未到判定时点,成团数偏低属正常。</view>
+  </view>
+</block>
 
 <view class="card">
   <view style="font-weight:600;margin-bottom:12rpx;">待审 {{pending.length}}</view>
