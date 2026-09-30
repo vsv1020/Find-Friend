@@ -161,3 +161,53 @@ describe('Jev 映射:结果判读(与 interpret 同构,复用 decide)', () => {
     assert.strictEqual(r.decide(r.interpretJev(resp('pass', {}, 0.6)), r.MODE.GATE), 'queue')
   })
 })
+
+describe('多 provider 合并(不一致即交人工)', () => {
+  const ok = (verdict, riskFlags = [], confidence = 0.95) => ({ verdict, riskFlags, reasons: [], confidence, parsed: true })
+  const fail = r.onError(new Error('timeout'))
+
+  test('两者一致 pass 且无标记 → pass,gate 可放行', () => {
+    const m = r.combine([{ provider: 'deepseek', result: ok('pass') }, { provider: 'jev', result: ok('pass') }])
+    assert.strictEqual(m.verdict, 'pass')
+    assert.strictEqual(m.agreement, true)
+    assert.strictEqual(r.decide(m, r.MODE.GATE), 'publish')
+  })
+
+  test('verdict 不一致 → review,分歧本身就是要人看的信号', () => {
+    const m = r.combine([{ provider: 'deepseek', result: ok('pass') }, { provider: 'jev', result: ok('review') }])
+    assert.strictEqual(m.verdict, 'review')
+    assert.strictEqual(m.agreement, false)
+  })
+
+  test('任一命中风险标记 → review,标记取并集', () => {
+    const m = r.combine([{ provider: 'deepseek', result: ok('pass') }, { provider: 'jev', result: ok('pass', ['dating_intent']) }])
+    assert.strictEqual(m.verdict, 'review')
+    assert.deepStrictEqual(m.riskFlags, ['dating_intent'])
+  })
+
+  test('任一 reject → reject,但 decide 仍只进队列', () => {
+    const m = r.combine([{ provider: 'deepseek', result: ok('reject', ['commercial']) }, { provider: 'jev', result: ok('pass') }])
+    assert.strictEqual(m.verdict, 'reject')
+    assert.strictEqual(r.decide(m, r.MODE.GATE), 'queue')
+  })
+
+  test('只有一个 provider 成功 → 缺第二意见,gate 不放行', () => {
+    const m = r.combine([{ provider: 'deepseek', result: ok('pass') }, { provider: 'jev', result: fail }])
+    assert.strictEqual(m.verdict, 'pass')
+    assert.strictEqual(m.parsed, false)
+    assert.strictEqual(r.decide(m, r.MODE.GATE), 'queue')
+  })
+
+  test('全部失败 → review 且留痕', () => {
+    const m = r.combine([{ provider: 'deepseek', result: fail }, { provider: 'jev', result: fail }])
+    assert.strictEqual(m.verdict, 'review')
+    assert.strictEqual(m.parsed, false)
+    assert.strictEqual(m.providers.length, 2)
+  })
+
+  test('置信度取最小值 —— 以最不确定的那个为准', () => {
+    const m = r.combine([{ provider: 'deepseek', result: ok('pass', [], 0.99) }, { provider: 'jev', result: ok('pass', [], 0.7) }])
+    assert.strictEqual(m.confidence, 0.7)
+    assert.strictEqual(r.decide(m, r.MODE.GATE), 'queue')
+  })
+})

@@ -103,6 +103,12 @@ const REVIEW = {
   aiPrecheck: 'off',
   /** 预审调用超时(毫秒)。发局是同步路径,超时即降级为未评审,不能拖住用户 */
   aiPrecheckTimeoutMs: 8000,
+  /**
+   * 参与预审的 provider。多个并行调用,结果按 reviewer.combine 合并:不一致即交人工。
+   * deepseek = 主评(国内可达);jev = 第二意见(TypeSafe AI,中文能力待校准)。
+   * 密钥来自云函数环境变量 DEEPSEEK_API_KEY / JEV_API_KEY,缺失的 provider 自动跳过。
+   */
+  aiProviders: ['deepseek', 'jev'],
 }
 
 /**

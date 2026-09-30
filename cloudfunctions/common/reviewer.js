@@ -235,8 +235,46 @@ function interpretJev(response) {
   }
 }
 
+/**
+ * 合并多个 provider 的评审结果(docs/09 §二:DeepSeek 主评,Jev 第二意见)。
+ *
+ * 规则只有一条值得记住:**不一致就交人工。** 两个模型的分歧本身就是最有价值的信号 ——
+ * 既是当下该看一眼的局,也是日后校准 Jev 中文表现的数据。
+ *
+ * @param {{provider:string, result:object}[]} entries
+ * @returns 与 interpret() 同构的结果,附 providers 明细
+ */
+function combine(entries) {
+  const parsed = entries.filter(e => e.result && e.result.parsed)
+  const providers = entries.map(e => ({ provider: e.provider, ...e.result }))
+
+  if (!parsed.length) {
+    return { verdict: VERDICT.REVIEW, riskFlags: [], reasons: ['所有评审服务均不可用'], confidence: 0, parsed: false, providers }
+  }
+
+  const verdicts = new Set(parsed.map(e => e.result.verdict))
+  const riskFlags = [...new Set(parsed.flatMap(e => e.result.riskFlags))]
+  const confidence = Math.min(...parsed.map(e => e.result.confidence))
+  const reasons = parsed.flatMap(e => e.result.reasons.map(r => `[${e.provider}] ${r}`)).slice(0, 3)
+
+  let verdict
+  if (verdicts.has(VERDICT.REJECT)) verdict = VERDICT.REJECT
+  else if (verdicts.size > 1 || riskFlags.length) verdict = VERDICT.REVIEW
+  else verdict = [...verdicts][0]
+
+  // 只有一个 provider 成功时,它的 pass 不足以支撑 gate 放行 —— 缺了第二意见
+  const parsedOk = parsed.length === entries.length
+
+  return {
+    verdict, riskFlags, reasons, confidence,
+    parsed: parsedOk,
+    agreement: verdicts.size === 1,
+    providers,
+  }
+}
+
 module.exports = {
   VERDICT, MODE, RISK_FLAGS, GATE_MIN_CONFIDENCE, RISK_PROB_THRESHOLD,
   buildReviewInput, interpret, decide, onError,
-  buildJevQuestions, interpretJev,
+  buildJevQuestions, interpretJev, combine,
 }

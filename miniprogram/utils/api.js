@@ -67,6 +67,8 @@ module.exports = {
     review: (eventId, approved, note) => call('admin', 'review', { eventId, approved, note }),
     /** D06 全局自动审核开关,运营后台可随时切换,不需要发版 */
     setAutoApprove: on => call('admin', 'setAutoApprove', { on }),
+    /** AI 预审模式:off | advisory | gate(docs/09) */
+    setAiPrecheck: mode => call('admin', 'setAiPrecheck', { mode }),
     /** D14 授予/回收局主权限 —— 「给权限不给钱」的操作入口 */
     setHost: (userId, isHost) => call('admin', 'setHost', { userId, isHost }),
     metrics: () => call('admin', 'metrics'),

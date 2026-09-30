@@ -16,6 +16,9 @@ const { hostInitialSignup } = require('./common/signup')
 const { isBlocked } = require('./common/report')
 const { publicEvent, viewerOf } = require('./common/projection')
 const { validateEventPayload, validString, LIMITS } = require('./common/validate')
+const reviewer = require('./common/reviewer')
+const { REVIEW } = require('./common/rules')
+const ADAPTERS = { deepseek: require('./adapters/deepseek'), jev: require('./adapters/jev') }
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -150,7 +153,63 @@ async function create(payload, openid) {
     data: hostInitialSignup({ eventId: r._id, hostId: user._id, gender: user.gender, now }),
   })
   await logStatus(r._id, transition(STATUS.DRAFT, status, { reason: '发布', at: now }))
-  return { eventId: r._id, status }
+
+  // AI 辅助预审(docs/09):顾问不是法官。任何失败都降级为未评审,不影响发布主流程。
+  const finalStatus = await aiPrecheck(r._id, clean, status, settings, now)
+  return { eventId: r._id, status: finalStatus }
+}
+
+/**
+ * 模式取 settings.global.aiPrecheck,运营后台可切,不需要发版。
+ * provider 并行调用(DeepSeek 主评、Jev 第二意见),结果经 reviewer.combine 合并:不一致即交人工。
+ * advisory:只把建议写进 reviewQueue;gate:合并结果高置信 pass 且局正待审时自动放行。
+ * 任何模式下模型的 reject 都只是进队列 —— reviewer.decide 里没有让它生效的路径。
+ */
+async function aiPrecheck(eventId, clean, status, settings, now) {
+  const mode = settings.aiPrecheck || REVIEW.aiPrecheck
+  if (mode === reviewer.MODE.OFF) return status
+
+  const active = REVIEW.aiProviders.map(n => ADAPTERS[n]).filter(a => a && a.available())
+  if (!active.length) {
+    console.warn('[events] AI 预审已开启但没有可用 provider(缺少密钥),跳过')
+    return status
+  }
+
+  const entries = await Promise.all(active.map(async adapter => {
+    try {
+      const opts = { timeoutMs: REVIEW.aiPrecheckTimeoutMs }
+      const result = adapter.name === 'jev'
+        ? reviewer.interpretJev(await adapter.review(reviewer.buildJevQuestions(clean), opts))
+        : reviewer.interpret(await adapter.review(reviewer.buildReviewInput(clean), opts))
+      return { provider: adapter.name, result }
+    } catch (err) {
+      console.warn(`[events] ${adapter.name} 预审失败,降级为未评审`, err && err.message)
+      return { provider: adapter.name, result: reviewer.onError(err) }
+    }
+  }))
+
+  const merged = reviewer.combine(entries)
+  const action = reviewer.decide(merged, mode)
+
+  await db.collection('reviewQueue').add({
+    data: { type: 'ai_precheck', eventId, mode, action,
+            verdict: merged.verdict, riskFlags: merged.riskFlags, reasons: merged.reasons,
+            confidence: merged.confidence, agreement: merged.agreement, providers: merged.providers,
+            createdAt: now },
+  }).catch(() => {})
+  await db.collection('events').doc(eventId).update({
+    data: { aiReview: { verdict: merged.verdict, riskFlags: merged.riskFlags,
+                        confidence: merged.confidence, agreement: merged.agreement, at: now } },
+  }).catch(() => {})
+
+  if (action === 'publish' && status === STATUS.PENDING_REVIEW) {
+    const rec = transition(STATUS.PENDING_REVIEW, STATUS.OPEN, { reason: '[AI gate] 双模型高置信通过', at: now })
+    // CAS:只在仍待审时放行,防止与管理员手动审核并发
+    const upd = await db.collection('events').where({ _id: eventId, status: STATUS.PENDING_REVIEW })
+      .update({ data: { status: rec.status, publishedAt: now } })
+    if (upd.stats.updated) { await logStatus(eventId, rec); return STATUS.OPEN }
+  }
+  return status
 }
 
 /**

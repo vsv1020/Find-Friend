@@ -28,6 +28,7 @@ exports.main = async (event) => {
       case 'pendingReviews':  return ok(await pendingReviews())
       case 'review':          return ok(await review(event, admin))
       case 'setAutoApprove':  return ok(await setAutoApprove(event))
+      case 'setAiPrecheck':   return ok(await setAiPrecheck(event))
       case 'setHost':         return ok(await setHost(event))
       case 'metrics':         return ok(await metrics())
       case 'openReports':     return ok(await openReports())
@@ -69,6 +70,16 @@ async function review({ eventId, approved, note }, admin) {
 }
 
 /** D06 全局自动审核开关 —— 运行时切换,不需要发版 */
+/** AI 预审模式切换(docs/09):off | advisory | gate。gate 只在一致率数据支持后再开。 */
+async function setAiPrecheck({ mode }) {
+  const allowed = ['off', 'advisory', 'gate']
+  if (!allowed.includes(mode)) throw Object.assign(new Error(`mode 必须是 ${allowed.join('/')}`), { code: 'bad_mode' })
+  const patch = { aiPrecheck: mode, updatedAt: new Date().toISOString() }
+  await db.collection('settings').doc('global').update({ data: patch })
+    .catch(() => db.collection('settings').doc('global').set({ data: patch }))
+  return { aiPrecheck: mode }
+}
+
 async function setAutoApprove({ on }) {
   await db.collection('settings').doc('global')
     .set({ data: { autoApprove: Boolean(on), updatedAt: new Date().toISOString() } })
