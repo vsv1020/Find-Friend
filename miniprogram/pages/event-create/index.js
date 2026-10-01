@@ -32,6 +32,7 @@ Page({
     customStartAt: '',
     customDate: '', customTime: '', minDate: '', maxDate: '',
     venue: null,              // D09 自由输入:{name, address, lat, lng}
+    suggestions: [],          // T24 推荐场地,按场景加载
     capacityMax: 4,
     capacityHardMax: 6,
     capacityMin: 2,
@@ -63,8 +64,18 @@ Page({
     this.setData({ customStartAt: iso })
   },
 
+  /** 推荐场地按场景加载;失败静默,表单不依赖它 */
+  loadSuggestions(sceneType) {
+    api.venues.suggest(sceneType).then(list => this.setData({ suggestions: list })).catch(() => {})
+  },
+  onPickSuggestion(e) {
+    const s = this.data.suggestions[Number(e.currentTarget.dataset.index)]
+    if (s) this.setData({ venue: { name: s.name, address: s.address, lat: s.lat, lng: s.lng } })
+  },
+
   /** 选场景即带出全部默认值 —— 这是「30 秒填完」的关键 */
   applyScene(sceneType) {
+    this.loadSuggestions(sceneType)
     const r = SCENE_RULES[sceneType]
     this.setData({
       sceneType,

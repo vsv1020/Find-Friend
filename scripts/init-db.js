@@ -43,6 +43,8 @@ const COLLECTIONS = [
     { keys: { anonId: 1 } },
   ]},
   { name: 'settings', indexes: [] },
+  // T24 推荐场地;geohash 用于与局的热度格子对齐
+  { name: 'venues', indexes: [{ keys: { isActive: 1, createdAt: -1 } }, { keys: { geohash: 1 } }] },
 ]
 
 console.log('# 集合与索引(权限一律设为「仅管理端可读写」)\n')

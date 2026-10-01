@@ -25,6 +25,10 @@ module.exports = {
     cancel: eventId => call('signups', 'cancel', { eventId }),
     mine: () => call('signups', 'mine'),
   },
+  venues: {
+    /** 发局时的推荐场地:场景匹配优先,再按热度 */
+    suggest: sceneType => call('venues', 'suggest', { sceneType }),
+  },
   report: {
     /** targetType: event | message | user */
     create: (targetType, targetId, reason, detail) =>
@@ -69,6 +73,9 @@ module.exports = {
     setAutoApprove: on => call('admin', 'setAutoApprove', { on }),
     /** AI 预审模式:off | advisory | gate(docs/09) */
     setAiPrecheck: mode => call('admin', 'setAiPrecheck', { mode }),
+    listVenues: () => call('admin', 'listVenues'),
+    upsertVenue: (venue, venueId) => call('admin', 'upsertVenue', { venue, venueId }),
+    toggleVenue: (venueId, isActive) => call('admin', 'toggleVenue', { venueId, isActive }),
     /** D14 授予/回收局主权限 —— 「给权限不给钱」的操作入口 */
     setHost: (userId, isHost) => call('admin', 'setHost', { userId, isHost }),
     metrics: () => call('admin', 'metrics'),

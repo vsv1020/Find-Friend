@@ -20,6 +20,7 @@ window.MOCK = {
   'event-create': { scenes: [{ value: 'coffee', label: '下午咖啡局', hint: '两人即可成局' }, { value: 'art', label: '艺术展 / 市集', hint: '有话题载体,适合社恐' }, { value: 'bar', label: '晚间小酒馆', hint: '需要四人成局' }],
     sceneType: 'coffee', slots: [{ label: '本周六 15:00', startAt: 'a' }, { label: '本周日 15:00', startAt: 'b' }, { label: '下周六 15:00', startAt: 'c' }], slotIndex: 0,
     customStartAt: '', customDate: '', customTime: '', minDate: '2026-10-01', maxDate: '2026-11-30',
+    suggestions: [{ _id: 'v1', name: 'Sarnies Bangkok', formed: 4 }, { _id: 'v2', name: 'Hands and Heart', formed: 2 }, { _id: 'v3', name: 'Rocket Coffeebar S.12', formed: 0 }, { _id: 'v4', name: 'Factory Coffee', formed: 1 }],
     venue: { name: 'Sarnies Bangkok', address: '101-103 Charoen Krung 44' }, capacityMin: 2, capacityMax: 4, capacityHardMax: 6, priceEstTHB: 200, description: '', submitting: false },
   'signup-success': { status: 'confirmed', subscribed: true, recommends: EVENTS.slice(1).map(e => ({ ...e })) },
   poster: { rendering: false, previewPath: 'poster-sample.svg', error: '' },
@@ -35,6 +36,8 @@ window.MOCK = {
     pendingRatings: [{ event: EVENTS[1], startText: '上周日 14:00', count: 2, isHost: false }] },
   privacy: { loading: false, profile: { nickname: '小王', reliability: 96 } },
   admin: { loading: false, autoApprove: false, aiPrecheck: 'advisory',
+    venues: [{ _id: 'v1', name: 'Sarnies Bangkok', isActive: true, formed: 4, published: 5 }, { _id: 'v2', name: 'Hands and Heart', isActive: true, formed: 2, published: 2 }, { _id: 'v3', name: 'Old Town Cafe', isActive: false, formed: 0, published: 1 }],
+    hotspots: [{ geohash: 'w4rqnx', name: 'Teens of Thailand', published: 3, formed: 3, sample: {} }],
     board: {
       funnel: { views: 182, starts: 61, successes: 47, rateText: '25.8%', targetText: '25%', met: true, lookbackDays: 30 },
       repeat: { users: 23, repeaters: 9, pending: 4, rateText: '39%', targetText: '35%', met: true, windowDays: 30 },

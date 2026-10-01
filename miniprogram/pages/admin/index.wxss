@@ -27,3 +27,5 @@
 .btn-sm + .btn-sm { background: #f2f2f2; color: #1a1a1a; }
 .rec { padding: 20rpx 0; border-bottom: 1rpx solid #f0f0f0; }
 .rec:last-child { border-bottom: none; }
+.row-between { display: flex; justify-content: space-between; align-items: center; gap: 16rpx; }
+.btn-sm.ghost { background: #f2f2f2; color: #1a1a1a; }

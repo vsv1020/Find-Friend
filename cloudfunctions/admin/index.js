@@ -7,6 +7,8 @@
 const cloud = require('wx-server-sdk')
 const { STATUS, transition } = require('./common/state-machine')
 const { dashboard, FUNNEL } = require('./common/metrics')
+const { heatByCell, venueHeat, unlistedHotspots, normalizeVenue } = require('./common/venue')
+const { VENUE } = require('./common/rules')
 const { METRICS, SIGNUP_STATUS } = require('./common/rules')
 
 const DAY_MS = 24 * 3600 * 1000
@@ -29,6 +31,9 @@ exports.main = async (event) => {
       case 'review':          return ok(await review(event, admin))
       case 'setAutoApprove':  return ok(await setAutoApprove(event))
       case 'setAiPrecheck':   return ok(await setAiPrecheck(event))
+      case 'listVenues':      return ok(await listVenues())
+      case 'upsertVenue':     return ok(await upsertVenue(event, admin))
+      case 'toggleVenue':     return ok(await toggleVenue(event))
       case 'setHost':         return ok(await setHost(event))
       case 'metrics':         return ok(await metrics())
       case 'openReports':     return ok(await openReports())
@@ -70,6 +75,39 @@ async function review({ eventId, approved, note }, admin) {
 }
 
 /** D06 全局自动审核开关 —— 运行时切换,不需要发版 */
+// ---- T24 推荐场地 ----
+
+/** 推荐场地列表(带距离热度)+ 未收录热点(供一键收录) */
+async function listVenues() {
+  const [venues, events] = await Promise.all([
+    db.collection('venues').orderBy('createdAt', 'desc').limit(200).get().then(r => r.data),
+    db.collection('events').where({ publishedAt: _.neq(null) }).orderBy('publishedAt', 'desc')
+      .field({ venue: true, status: true, publishedAt: true }).limit(VENUE.heatFetchLimit).get().then(r => r.data),
+  ])
+  return {
+    venues: venues.map(v => ({ ...v, ...venueHeat(v, events) })),
+    hotspots: unlistedHotspots(venues, heatByCell(events)),
+  }
+}
+
+/** 新增或更新推荐场地。入参经 normalizeVenue 清洗,坐标越界或缺名直接拒。 */
+async function upsertVenue({ venueId, venue }, admin) {
+  const clean = normalizeVenue(venue)
+  if (!clean) throw Object.assign(new Error('场地信息无效'), { code: 'bad_venue' })
+  const now = new Date().toISOString()
+  if (venueId) {
+    await db.collection('venues').doc(String(venueId)).update({ data: { ...clean, updatedAt: now } })
+    return { venueId }
+  }
+  const r = await db.collection('venues').add({ data: { ...clean, createdBy: admin._id, createdAt: now } })
+  return { venueId: r._id }
+}
+
+async function toggleVenue({ venueId, isActive }) {
+  await db.collection('venues').doc(String(venueId)).update({ data: { isActive: Boolean(isActive) } })
+  return { venueId, isActive: Boolean(isActive) }
+}
+
 /** AI 预审模式切换(docs/09):off | advisory | gate。gate 只在一致率数据支持后再开。 */
 async function setAiPrecheck({ mode }) {
   const allowed = ['off', 'advisory', 'gate']

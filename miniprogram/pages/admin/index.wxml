@@ -91,3 +91,24 @@
     <view class="muted">{{item.detail || item.context.content || item.context.description || ''}}</view>
   </view>
 </view>
+
+<view class="card">
+  <view style="font-weight:600;margin-bottom:12rpx;">推荐场地 {{venues.length}}</view>
+  <view wx:for="{{venues}}" wx:key="_id" class="rec row-between">
+    <view>
+      <view>{{item.name}}<text wx:if="{{!item.isActive}}" class="muted"> · 已下架</text></view>
+      <view class="muted">成团 {{item.formed}} · 公开 {{item.published}}</view>
+    </view>
+    <view class="btn-sm ghost" data-id="{{item._id}}" data-active="{{item.isActive}}" bindtap="onToggleVenue">{{item.isActive ? '下架' : '上架'}}</view>
+  </view>
+  <view wx:if="{{hotspots.length}}" style="margin-top:16rpx;">
+    <view class="muted" style="margin-bottom:8rpx;">常被选但还没收录的地方</view>
+    <view wx:for="{{hotspots}}" wx:key="geohash" class="rec row-between">
+      <view>
+        <view>{{item.name}}</view>
+        <view class="muted">公开 {{item.published}} · 成团 {{item.formed}}</view>
+      </view>
+      <view class="btn-sm" data-index="{{index}}" bindtap="onAdoptHotspot">收录</view>
+    </view>
+  </view>
+</view>

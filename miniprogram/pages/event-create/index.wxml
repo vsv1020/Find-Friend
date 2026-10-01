@@ -28,6 +28,14 @@
 
 <view class="card" bindtap="onChooseVenue">
   <view class="label">在哪</view>
+  <!-- 推荐场地:点一下就填好,不想用就下面自己选点(D09 自由输入不受限制) -->
+  <view wx:if="{{suggestions.length}}" class="chips">
+    <view wx:for="{{suggestions}}" wx:key="_id"
+          class="chip {{venue && venue.name === item.name ? 'active' : ''}}"
+          data-index="{{index}}" catchtap="onPickSuggestion">
+      {{item.name}}<text wx:if="{{item.formed}}" class="chip-heat"> · 成团 {{item.formed}}</text>
+    </view>
+  </view>
   <view wx:if="{{venue}}">
     <view class="venue-name">{{venue.name}}</view>
     <view class="muted">{{venue.address}}</view>

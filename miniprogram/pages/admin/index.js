@@ -35,6 +35,7 @@ Page({
   data: {
     pending: [], reports: [], metrics: null, board: null, autoApprove: false, loading: true,
     aiPrecheck: 'off',
+    venues: [], hotspots: [],
     aiModes: [{ value: 'off', label: '关闭' }, { value: 'advisory', label: '顾问' }, { value: 'gate', label: '放行' }],
   },
 
@@ -42,8 +43,9 @@ Page({
 
   async load() {
     try {
-      const [pending, metrics, reports] = await Promise.all([
+      const [pending, metrics, reports, venueData] = await Promise.all([
         api.admin.pending(), api.admin.metrics(), api.admin.openReports().catch(() => []),
+        api.admin.listVenues().catch(() => ({ venues: [], hotspots: [] })),
       ])
       this.setData({
         loading: false,
@@ -53,6 +55,7 @@ Page({
         aiPrecheck: metrics.aiPrecheck || 'off',
         pending: pending.map(e => ({ ...e, startText: fmt.formatStart(e.startAt) })),
         reports,
+        venues: venueData.venues, hotspots: venueData.hotspots,
       })
     } catch (e) { this.setData({ loading: false }) }
   },
@@ -61,6 +64,20 @@ Page({
   async onToggleAutoApprove(e) {
     await api.admin.setAutoApprove(e.detail.value)
     this.setData({ autoApprove: e.detail.value })
+  },
+
+  async onToggleVenue(e) {
+    const { id, active } = e.currentTarget.dataset
+    await api.admin.toggleVenue(id, !active)
+    this.load()
+  },
+
+  /** 一键收录热点:用该格子里最常用的名称与一次采样坐标建推荐场地 */
+  async onAdoptHotspot(e) {
+    const h = this.data.hotspots[Number(e.currentTarget.dataset.index)]
+    if (!h) return
+    await api.admin.upsertVenue({ name: h.name, address: h.sample.address || '', lat: h.sample.lat, lng: h.sample.lng, sceneTypes: [] })
+    this.load()
   },
 
   async onSetAiPrecheck(e) {

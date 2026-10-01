@@ -144,6 +144,14 @@ const VENUE = {
   showSuggestedVenues: true,
   /** 热度聚合精度。geohash 6 位约 ±0.6km,足以把同一家店的多次选点聚到一起。 */
   heatmapGeohashPrecision: 6,
+  /** 发局表单展示的推荐场地数。一屏放得下、不用滚就能点到 */
+  suggestLimit: 8,
+  /** 后台「未收录热点」门槛:一个格子里公开过几个局才值得收录 */
+  hotspotMinPublished: 2,
+  /** 热度统计回看的局数上限(按 publishedAt 倒序) */
+  heatFetchLimit: 1000,
+  /** 推荐场地热度的匹配半径(米)。选点误差 + 同一商场内的店,250m 够用且不会串到隔壁街 */
+  heatRadiusM: 250,
 }
 
 /**
