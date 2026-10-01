@@ -1,6 +1,8 @@
 const api = require('../../utils/api')
 const fmt = require('../../utils/format')
 
+const STATUS_TEXT = { confirmed: '已报名', waitlist: '候补中', attended: '已参加', no_show: '未到场', cancelled: '已取消' }
+
 Page({
   data: { signups: [], pendingRatings: [], loading: true },
 
@@ -14,7 +16,7 @@ Page({
       ])
       this.setData({
         loading: false,
-        signups: list.map(s => ({ ...s, startText: fmt.formatStart(s.event.startAt) })),
+        signups: list.map(s => ({ ...s, startText: fmt.formatStart(s.event.startAt), statusText: STATUS_TEXT[s.status] || s.status })),
         pendingRatings: pending.map(p => ({
           ...p, startText: fmt.formatStart(p.event.startAt), count: p.remaining.length,
         })),

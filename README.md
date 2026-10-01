@@ -10,6 +10,7 @@ npm test              # 293 项测试(单元 + 并发对撞 + 安全回归 + 看
                       #             评价资格 / 群聊权限 / 轮询退避 / 内容安全判读
 npm run sync:config   # 部署前必须执行：同步 rules 与 common 到各云函数
 node scripts/init-db.js   # 打印建库指令
+npm run preview       # 无需微信开发者工具:用真实 WXML/WXSS + mock 数据渲染全部页面并截图到 preview/shots/
 ```
 
 工程结构：`miniprogram/`（小程序端）· `cloudfunctions/`（events / signups / formation / admin）· `cloudfunctions/common/`（领域逻辑，纯函数，可测）· `config/rules.js`（规则真源）

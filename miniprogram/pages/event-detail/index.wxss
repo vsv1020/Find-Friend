@@ -17,3 +17,10 @@
 .gender-item.active { background: #1a1a1a; color: #fff; }
 .btn-ghost { text-align: center; padding: 24rpx; color: #5a5a5a; }
 .report-link { text-align: center; padding: 16rpx; font-size: 24rpx; }
+.agree-row { display: flex; align-items: flex-start; gap: 16rpx; margin-bottom: 24rpx; font-size: 24rpx; }
+.checkbox { width: 36rpx; height: 36rpx; border-radius: 8rpx; border: 2rpx solid #bbb; text-align: center;
+            line-height: 36rpx; font-size: 24rpx; flex-shrink: 0; }
+.checkbox.checked { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.agree-text { color: #5a5a5a; }
+.link { color: #1a1a1a; text-decoration: underline; }
+.btn-primary.disabled { opacity: .4; }

@@ -1,0 +1,4 @@
+<view class="doc">
+  <view class="doc-title">{{title}}</view>
+  <view wx:for="{{sections}}" wx:key="index" class="para">{{item}}</view>
+</view>

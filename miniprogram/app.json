@@ -10,7 +10,9 @@
     "pages/rating/index",
     "pages/chat/index",
     "pages/admin/index",
-    "pages/host/index"
+    "pages/host/index",
+    "pages/privacy/policy",
+    "pages/privacy/terms"
   ],
   "window": {
     "navigationBarTitleText": "出去",
@@ -20,13 +22,23 @@
   },
   "tabBar": {
     "list": [
-      { "pagePath": "pages/index/index", "text": "周末" },
-      { "pagePath": "pages/my/index", "text": "我的" }
+      {
+        "pagePath": "pages/index/index",
+        "text": "周末"
+      },
+      {
+        "pagePath": "pages/my/index",
+        "text": "我的"
+      }
     ]
   },
   "permission": {
-    "scope.userLocation": { "desc": "用于在发局时选择活动地点" }
+    "scope.userLocation": {
+      "desc": "用于在发局时选择活动地点"
+    }
   },
-  "requiredPrivateInfos": ["chooseLocation"],
+  "requiredPrivateInfos": [
+    "chooseLocation"
+  ],
   "sitemapLocation": "sitemap.json"
 }

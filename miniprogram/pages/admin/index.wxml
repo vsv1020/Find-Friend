@@ -4,6 +4,15 @@
   <view class="muted">关闭时所有新局需你手动放行;局主(已授权)始终免审。</view>
 </view>
 
+<view class="card">
+  <view style="font-weight:600;">AI 预审</view>
+  <view class="seg">
+    <view wx:for="{{aiModes}}" wx:key="value" class="seg-item {{aiPrecheck === item.value ? 'active' : ''}}"
+          data-value="{{item.value}}" bindtap="onSetAiPrecheck">{{item.label}}</view>
+  </view>
+  <view class="muted">顾问模式只给建议不改状态;放行模式需两个模型一致且高置信,先跑 8 周顾问模式再开。</view>
+</view>
+
 <view wx:if="{{metrics}}" class="card">
   <view style="font-weight:600;margin-bottom:12rpx;">成团率</view>
   <view>整体 {{metrics.overall.formed}}/{{metrics.overall.total}} · 目标 {{metrics.overall.target * 100}}%</view>

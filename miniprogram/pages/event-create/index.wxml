@@ -16,7 +16,14 @@
     <view wx:for="{{slots}}" wx:key="startAt"
           class="slot-item {{slotIndex === index && !customStartAt ? 'active' : ''}}"
           data-index="{{index}}" bindtap="onSelectSlot">{{item.label}}</view>
+    <picker mode="date" start="{{minDate}}" end="{{maxDate}}" value="{{customDate}}" bindchange="onCustomDate">
+      <view class="slot-item {{customStartAt ? 'active' : ''}}">{{customDate || '选日期'}}</view>
+    </picker>
+    <picker mode="time" value="{{customTime}}" bindchange="onCustomTime">
+      <view class="slot-item {{customStartAt ? 'active' : ''}}">{{customTime || '选时间'}}</view>
+    </picker>
   </view>
+  <view wx:if="{{customStartAt}}" class="muted">自定义:{{customDate}} {{customTime}}(曼谷时间)</view>
 </view>
 
 <view class="card" bindtap="onChooseVenue">

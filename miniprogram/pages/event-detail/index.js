@@ -17,6 +17,7 @@ Page({
     loading: true,
     /** 报名弹层:需要昵称 + 性别(D08 必填三选项) */
     showProfileSheet: false,
+    agreed: false,            // 合规:不可默认勾选
     profile: { nickname: '', gender: '' },
     genderOptions: [
       { value: 'male', label: '男' },
@@ -62,7 +63,14 @@ Page({
    * 手机号一键授权(D06 企业主体解锁)。
    * ⚠️ 拿到的是微信绑定号(多为 +86),只作账号唯一性锚点,不作通知通道 —— 见 docs/03 §4。
    */
+  onToggleAgree() { this.setData({ agreed: !this.data.agreed }) },
+  onOpenTerms() { wx.navigateTo({ url: '/pages/privacy/terms' }) },
+  onOpenPolicy() { wx.navigateTo({ url: '/pages/privacy/policy' }) },
+  /** 未勾选同意时按钮没有 open-type,点击只提示 */
+  onTapConfirm() { if (!this.data.agreed) wx.showToast({ title: '请先阅读并同意协议', icon: 'none' }) },
+
   async onGetPhoneNumber(e) {
+    if (!this.data.agreed) return wx.showToast({ title: '请先阅读并同意协议', icon: 'none' })
     if (!e.detail.code) return wx.showToast({ title: '需要手机号才能报名', icon: 'none' })
     const { nickname, gender } = this.data.profile
     if (!nickname.trim()) return wx.showToast({ title: '请填写昵称', icon: 'none' })

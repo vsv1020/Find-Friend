@@ -32,7 +32,11 @@ function dashboardView(m) {
 }
 
 Page({
-  data: { pending: [], reports: [], metrics: null, board: null, autoApprove: false, loading: true },
+  data: {
+    pending: [], reports: [], metrics: null, board: null, autoApprove: false, loading: true,
+    aiPrecheck: 'off',
+    aiModes: [{ value: 'off', label: '关闭' }, { value: 'advisory', label: '顾问' }, { value: 'gate', label: '放行' }],
+  },
 
   onShow() { this.load() },
 
@@ -46,6 +50,7 @@ Page({
         metrics,
         board: dashboardView(metrics),
         autoApprove: metrics.autoApprove,
+        aiPrecheck: metrics.aiPrecheck || 'off',
         pending: pending.map(e => ({ ...e, startText: fmt.formatStart(e.startAt) })),
         reports,
       })
@@ -56,6 +61,19 @@ Page({
   async onToggleAutoApprove(e) {
     await api.admin.setAutoApprove(e.detail.value)
     this.setData({ autoApprove: e.detail.value })
+  },
+
+  async onSetAiPrecheck(e) {
+    const mode = e.currentTarget.dataset.value
+    if (mode === 'gate') {
+      const r = await new Promise(resolve => wx.showModal({
+        title: '开启自动放行?', content: '两个模型一致且高置信的局会跳过人工直接公开。建议先跑 8 周顾问模式看一致率。',
+        success: resolve,
+      }))
+      if (!r.confirm) return
+    }
+    await api.admin.setAiPrecheck(mode)
+    this.setData({ aiPrecheck: mode })
   },
 
   /** 处理一条举报:提供 封人 / 下架局 / 驳回 三个动作 */

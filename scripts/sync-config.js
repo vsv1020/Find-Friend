@@ -54,4 +54,10 @@ for (const fn of FUNCTIONS) {
   }
 }
 
+// 小程序端只需要 validate.js 里的少数常量,不把整个校验模块(含 require 链)复制过去
+const limits = require(path.join(COMMON_DIR, 'validate.js'))
+fs.writeFileSync(path.join(ROOT, 'miniprogram/config/validate-limits.js'),
+  BANNER + 'module.exports = ' + JSON.stringify({ MAX_DAYS_AHEAD: limits.MAX_DAYS_AHEAD, LIMITS: limits.LIMITS }, null, 2) + '\n')
+count++
+
 console.log(`✓ 已同步 ${count} 个文件到 ${FUNCTIONS.length} 个云函数与小程序端`)

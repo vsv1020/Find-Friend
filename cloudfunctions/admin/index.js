@@ -124,6 +124,7 @@ async function metrics() {
   return {
     ...dashboard({ events: events.data, signups: signups.data, analyticsEvents: analyticsEvents.data, now }),
     autoApprove: Boolean(settings && settings.data && settings.data.autoApprove),
+    aiPrecheck: (settings && settings.data && settings.data.aiPrecheck) || 'off',
     // 触顶说明数字只基于最近的一部分数据,前端据此提示「数据不完整」
     truncated: {
       events: events.truncated, signups: signups.truncated, analyticsEvents: analyticsEvents.truncated,

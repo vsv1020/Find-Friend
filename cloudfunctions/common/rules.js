@@ -262,6 +262,24 @@ const NOTIFY = {
   primaryChannel: 'wx_subscribe',
   smsFallbackEnabled: false, // V1.0 补 notifyPhone 后再开
   smsFallbackTemplates: ['event_formed', 'event_cancelled'],
+  /** 发送端每次处理的待发条数;定时触发器每分钟一次 */
+  drainBatchSize: 100,
+  /** 临时性错误(限流、网络)最多重试次数,超过即标 failed */
+  maxAttempts: 3,
+  /**
+   * templateKey → 订阅消息模板。模板 ID 在微信后台申请后填入云函数环境变量(envKey),
+   * 字段名(thing1/time2 …)由所选模板决定,部署时按实际模板对照 fields 调整。
+   * 缺模板 ID 的通知标为 skipped_no_template,不会堆在队列里反复失败。
+   */
+  templates: {
+    event_formed:        { envKey: 'TMPL_EVENT_FORMED',        title: '人齐了' },
+    event_cancelled_low: { envKey: 'TMPL_EVENT_CANCELLED',     title: '这次没凑齐' },
+    event_rally:         { envKey: 'TMPL_EVENT_RALLY',         title: '还差几个人' },
+    event_rescheduled:   { envKey: 'TMPL_EVENT_RESCHEDULED',   title: '时间改了' },
+    waitlist_promoted:   { envKey: 'TMPL_WAITLIST_PROMOTED',   title: '你有位置了' },
+    review_invite:       { envKey: 'TMPL_REVIEW_INVITE',       title: '一起去过的人怎么样' },
+    host_broadcast:      { envKey: 'TMPL_HOST_BROADCAST',      title: '局主有话说' },
+  },
 }
 
 module.exports = {

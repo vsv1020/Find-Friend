@@ -14,7 +14,8 @@
 const api = require('../../utils/api')
 const { track, EVENTS } = require('../../utils/track')
 const { SCENE_RULES } = require('../../config/rules')
-const { weekendSlots } = require('../../utils/schedule')
+const { weekendSlots, bangkokTimeToISO, bangkokParts } = require('../../utils/schedule')
+const { MAX_DAYS_AHEAD } = require('../../config/validate-limits')
 
 const SCENES = [
   { value: 'coffee', label: '下午咖啡局', hint: '两人即可成局' },
@@ -29,6 +30,7 @@ Page({
     slots: [],
     slotIndex: 0,
     customStartAt: '',
+    customDate: '', customTime: '', minDate: '', maxDate: '',
     venue: null,              // D09 自由输入:{name, address, lat, lng}
     capacityMax: 4,
     capacityHardMax: 6,
@@ -38,7 +40,28 @@ Page({
     submitting: false,
   },
 
-  onLoad() { this.applyScene('coffee') },
+  onLoad() {
+    const today = bangkokParts(new Date().toISOString())
+    const fmt = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    const max = new Date(Date.UTC(today.year, today.month, today.day + MAX_DAYS_AHEAD))
+    this.setData({
+      minDate: fmt(today.year, today.month, today.day),
+      maxDate: fmt(max.getUTCFullYear(), max.getUTCMonth(), max.getUTCDate()),
+    })
+    this.applyScene('coffee')
+  },
+
+  /** 自定义时间:日期 + 时间都选了才生效,按曼谷时区换算成 ISO */
+  onCustomDate(e) { this.setData({ customDate: e.detail.value }); this.composeCustom() },
+  onCustomTime(e) { this.setData({ customTime: e.detail.value }); this.composeCustom() },
+  composeCustom() {
+    const { customDate, customTime } = this.data
+    if (!customDate || !customTime) return
+    const [y, m, d] = customDate.split('-').map(Number)
+    const [hh, mm] = customTime.split(':').map(Number)
+    const iso = new Date(Date.parse(bangkokTimeToISO({ year: y, month: m - 1, day: d, hour: hh })) + mm * 60000).toISOString()
+    this.setData({ customStartAt: iso })
+  },
 
   /** 选场景即带出全部默认值 —— 这是「30 秒填完」的关键 */
   applyScene(sceneType) {
