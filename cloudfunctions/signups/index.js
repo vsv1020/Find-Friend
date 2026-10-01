@@ -12,6 +12,7 @@ const { SIGNUP_STATUS } = require('./common/rules')
 const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 const { isBlocked } = require('./common/report')
 const { validateProfile } = require('./common/validate')
+const { newUserDoc } = require('./common/user')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -163,19 +164,7 @@ async function upsertUser(openid, profile) {
     phone = res.phoneInfo && res.phoneInfo.phoneNumber
   }
   const now = new Date().toISOString()
-  const doc = {
-    openid, phone,
-    notifyPhone: null,          // 可选的泰国本地号,V1.0 才启用
-    nickname: (profile.nickname || '').slice(0, 20),
-    gender: profile.gender,     // D08 必填,V1 仅供人工审核参考(D07 未启用自动配比)
-    isHost: false,              // D14 局主权限,由管理员授予
-    isAdmin: false,
-    reliability: 100,
-    noShowCount: 0,
-    status: 'active',
-    restrictedUntil: null,
-    createdAt: now,
-  }
+  const doc = newUserDoc({ openid, phone, nickname: profile.nickname, gender: profile.gender, now })
   const added = await db.collection('users').add({ data: doc })
   return { _id: added._id, ...doc }
 }

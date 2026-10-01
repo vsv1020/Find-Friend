@@ -39,6 +39,7 @@ Page({
     priceEstTHB: 200,
     description: '',
     submitting: false,
+    showRegister: false,      // 无账号时弹出建号
   },
 
   onLoad() {
@@ -126,9 +127,25 @@ Page({
         success: () => wx.redirectTo({ url: `/pages/event-detail/index?eventId=${r.eventId}` }),
       })
     } catch (e) {
+      // 没账号不是错误,是第一次来:弹建号层,建完自动重试发布
+      if (e.code === 'no_user') { this.setData({ showRegister: true }); return }
       wx.showToast({ title: e.message || '发布失败', icon: 'none' })
     } finally {
       this.setData({ submitting: false })
+    }
+  },
+
+  onCloseRegister() { this.setData({ showRegister: false }) },
+  async onRegisterSubmit(e) {
+    wx.showLoading({ title: '创建账号' })
+    try {
+      await api.account.register(e.detail)
+      this.setData({ showRegister: false })
+      wx.hideLoading()
+      this.onSubmit()
+    } catch (err) {
+      wx.hideLoading()
+      wx.showToast({ title: err.message || '创建失败', icon: 'none' })
     }
   },
 })

@@ -61,3 +61,7 @@
     {{submitting ? '发布中…' : '发出去'}}
   </view>
 </view>
+
+<!-- 没报过名的人(包括第一个用户)也能直接开局:先建号,再接着发 -->
+<profile-sheet show="{{showRegister}}" title="先认识一下" confirm-text="创建账号并发布"
+               bind:submit="onRegisterSubmit" bind:close="onCloseRegister" />

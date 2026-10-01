@@ -66,6 +66,18 @@
   function renderOne(el, scope, out) {
     const tag = el.tagName.toLowerCase()
     if (tag === 'block') { renderNodes([...el.childNodes], scope, out); return }
+    // 自定义组件:属性(kebab → camel)求值后作为组件作用域,内部状态取 MOCK_COMPONENTS
+    if (window.COMPONENTS && window.COMPONENTS[tag]) {
+      const props = {}
+      for (const a of [...el.attributes]) {
+        if (/^(bind|catch|wx:)/.test(a.name)) continue
+        const key = a.name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+        props[key] = /^\{\{[\s\S]*\}\}$/.test(a.value.trim()) ? evalExpr(a.value.trim().slice(2, -2), scope) : a.value
+      }
+      const inner = (window.MOCK_COMPONENTS && window.MOCK_COMPONENTS[tag]) || {}
+      renderNodes([...new DOMParser().parseFromString('<root xmlns:wx="wx" xmlns:bind="bind" xmlns:catch="catch">' + xmlify(window.COMPONENTS[tag].wxml) + '</root>', 'text/xml').documentElement.childNodes], { ...inner, ...props }, out)
+      return
+    }
     const h = document.createElement(TAG[tag] || 'div')
     h.setAttribute('data-wx', tag)
     for (const a of [...el.attributes]) {
@@ -126,7 +138,7 @@
   }
 
   window.renderWxml = function (wxml, data, mount) {
-    const doc = new DOMParser().parseFromString('<root xmlns:wx="wx">' + xmlify(wxml) + '</root>', 'text/xml')
+    const doc = new DOMParser().parseFromString('<root xmlns:wx="wx" xmlns:bind="bind" xmlns:catch="catch">' + xmlify(wxml) + '</root>', 'text/xml')
     const err = doc.querySelector('parsererror')
     if (err) { mount.textContent = 'WXML 解析失败: ' + err.textContent.slice(0, 200); return }
     mount.innerHTML = ''

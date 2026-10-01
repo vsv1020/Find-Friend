@@ -17,13 +17,6 @@ Page({
     loading: true,
     /** 报名弹层:需要昵称 + 性别(D08 必填三选项) */
     showProfileSheet: false,
-    agreed: false,            // 合规:不可默认勾选
-    profile: { nickname: '', gender: '' },
-    genderOptions: [
-      { value: 'male', label: '男' },
-      { value: 'female', label: '女' },
-      { value: 'other', label: '不便透露' },
-    ],
   },
 
   onLoad(query) {
@@ -63,22 +56,12 @@ Page({
    * 手机号一键授权(D06 企业主体解锁)。
    * ⚠️ 拿到的是微信绑定号(多为 +86),只作账号唯一性锚点,不作通知通道 —— 见 docs/03 §4。
    */
-  onToggleAgree() { this.setData({ agreed: !this.data.agreed }) },
-  onOpenTerms() { wx.navigateTo({ url: '/pages/privacy/terms' }) },
-  onOpenPolicy() { wx.navigateTo({ url: '/pages/privacy/policy' }) },
-  /** 未勾选同意时按钮没有 open-type,点击只提示 */
-  onTapConfirm() { if (!this.data.agreed) wx.showToast({ title: '请先阅读并同意协议', icon: 'none' }) },
-
-  async onGetPhoneNumber(e) {
-    if (!this.data.agreed) return wx.showToast({ title: '请先阅读并同意协议', icon: 'none' })
-    if (!e.detail.code) return wx.showToast({ title: '需要手机号才能报名', icon: 'none' })
-    const { nickname, gender } = this.data.profile
-    if (!nickname.trim()) return wx.showToast({ title: '请填写昵称', icon: 'none' })
-    if (!gender) return wx.showToast({ title: '请选择性别', icon: 'none' })
-
+  /** 组件已校验昵称/性别/同意;这里只负责报名 */
+  async onProfileSubmit(e) {
+    const { nickname, gender, phoneCode } = e.detail
     wx.showLoading({ title: '报名中' })
     try {
-      const r = await api.signups.join(this.eventId, { phoneCode: e.detail.code, nickname, gender })
+      const r = await api.signups.join(this.eventId, { phoneCode, nickname, gender })
       track(EVENTS.SIGNUP_SUCCESS, { eventId: this.eventId, status: r.status })
       wx.redirectTo({ url: `/pages/signup-success/index?eventId=${this.eventId}&status=${r.status}` })
     } catch (err) {
@@ -88,8 +71,6 @@ Page({
     }
   },
 
-  onNicknameInput(e) { this.setData({ 'profile.nickname': e.detail.value }) },
-  onGenderSelect(e) { this.setData({ 'profile.gender': e.currentTarget.dataset.value }) },
   onCloseSheet() { this.setData({ showProfileSheet: false }) },
 
   /** 成团后才对已确认的参与者显示 —— 与云函数 canEnter 的判定保持一致 */

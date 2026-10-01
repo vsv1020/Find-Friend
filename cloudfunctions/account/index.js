@@ -6,6 +6,9 @@
  */
 const cloud = require('wx-server-sdk')
 const { anonymizeUser, verifyAnonymized, PII_FIELDS } = require('./common/anonymize')
+const { newUserDoc } = require('./common/user')
+const { validateProfile } = require('./common/validate')
+const { interpret, onError, needsCheck, ACTION } = require('./common/moderation')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -18,6 +21,7 @@ exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext()
   try {
     switch (event.action) {
+      case 'register':      return ok(await register(event, OPENID))
       case 'profile':       return ok(await profile(OPENID))
       case 'exportMyData':  return ok(await exportMyData(OPENID))
       case 'deleteAccount': return ok(await deleteAccount(OPENID))
@@ -27,6 +31,39 @@ exports.main = async (event) => {
     console.error('[account]', event.action, e)
     return fail(e.code || 'internal', e.message)
   }
+}
+
+/**
+ * 建号(幂等):已有账号直接返回。发局前无账号时由前端引导到这里;
+ * 报名路径仍走 signups 内部的 upsert,两边共用 newUserDoc 保证字段一致。
+ */
+async function register({ profile: raw }, openid) {
+  const existing = await db.collection('users').where({ openid }).limit(1).get()
+  if (existing.data.length) return { userId: existing.data[0]._id, created: false }
+
+  const checked = validateProfile(raw)
+  if (!checked.ok) throw Object.assign(new Error(`资料无效: ${checked.errors.join(', ')}`), { code: 'bad_profile' })
+  const clean = checked.value
+
+  // 昵称会长期展示给同行者,risky 直接拒
+  if (needsCheck(clean.nickname)) {
+    let check
+    try {
+      check = interpret(await cloud.openapi.security.msgSecCheck({ content: clean.nickname, version: 2, scene: 1, openid }))
+    } catch (err) { check = onError(err) }
+    if (check.action === ACTION.REJECT) throw Object.assign(new Error('这个昵称不能用,换一个'), { code: 'nickname_risky' })
+  }
+
+  let phone = null
+  if (clean.phoneCode) {
+    const res = await cloud.openapi.phonenumber.getPhoneNumber({ code: clean.phoneCode })
+    phone = res.phoneInfo && res.phoneInfo.phoneNumber
+  }
+  const now = new Date().toISOString()
+  const added = await db.collection('users').add({
+    data: newUserDoc({ openid, phone, nickname: clean.nickname, gender: clean.gender, now }),
+  })
+  return { userId: added._id, created: true }
 }
 
 async function profile(openid) {

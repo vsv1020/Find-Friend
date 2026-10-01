@@ -11,6 +11,10 @@ const EVENTS = [
   EV({ _id: 'e2', sceneType: 'art', sceneText: '艺术展 / 市集', startText: '周六 14:00', venue: { name: 'BACC 曼谷艺术文化中心', address: 'Pathum Wan' }, confirmedCount: 2, capacityMax: 6, priceEstTHB: 300, shortByText: '还差 1 人', description: '新开的摄影展,看完一起找地方坐坐。' }),
   EV({ _id: 'e3', sceneType: 'bar', sceneText: '晚间小酒馆', startText: '周日 20:00', venue: { name: 'Teens of Thailand', address: 'Soi Nana, Chinatown' }, confirmedCount: 4, capacityMax: 8, priceEstTHB: 600, shortByText: '已成团,仍可加入', status: 'formed' }),
 ]
+window.MOCK_COMPONENTS = {
+  'profile-sheet': { nickname: '小王', gender: 'male', agreed: true,
+    genderOptions: [{ value: 'male', label: '男' }, { value: 'female', label: '女' }, { value: 'other', label: '不便透露' }] },
+}
 window.MOCK = {
   index: { loading: false, events: EVENTS },
   'event-detail': { loading: false, event: EV({ canChat: true, viewer: { isHost: true, signupStatus: 'confirmed' } }), showProfileSheet: false, agreed: false,

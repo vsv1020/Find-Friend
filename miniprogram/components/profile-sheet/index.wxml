@@ -1,0 +1,21 @@
+<view wx:if="{{show}}" class="mask" bindtap="onClose"></view>
+<view wx:if="{{show}}" class="sheet">
+  <view class="sheet-title">{{title}}</view>
+  <input class="input" placeholder="你的昵称" value="{{nickname}}" bindinput="onNicknameInput" />
+  <view class="gender-row">
+    <view wx:for="{{genderOptions}}" wx:key="value"
+          class="gender-item {{gender === item.value ? 'active' : ''}}"
+          data-value="{{item.value}}" bindtap="onGenderSelect">{{item.label}}</view>
+  </view>
+  <!-- 合规:同意勾选不可默认勾选 -->
+  <view class="agree-row" bindtap="onToggleAgree">
+    <view class="checkbox {{agreed ? 'checked' : ''}}">{{agreed ? '✓' : ''}}</view>
+    <view class="agree-text">我已阅读并同意
+      <text class="link" catchtap="onOpenTerms">《用户协议》</text>和
+      <text class="link" catchtap="onOpenPolicy">《隐私政策》</text>
+    </view>
+  </view>
+  <button class="btn-primary {{agreed ? '' : 'disabled'}}" open-type="{{agreed ? 'getPhoneNumber' : ''}}"
+          bindgetphonenumber="onGetPhoneNumber" bindtap="onTapConfirm">{{confirmText}}</button>
+  <view class="muted sheet-note">手机号仅用于识别账号,不会公开,也不会用于推销。</view>
+</view>

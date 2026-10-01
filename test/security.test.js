@@ -170,3 +170,19 @@ describe('S6 资源上限', () => {
     assert.strictEqual(v.validString('小王', v.LIMITS.nickname), '小王')
   })
 })
+
+describe('S7 建号文档(报名与发局共用)', () => {
+  const { newUserDoc } = require('../cloudfunctions/common/user')
+  test('新账号默认无权限、满分靠谱度、active', () => {
+    const u = newUserDoc({ openid: 'o', phone: '+66', nickname: '小王', gender: 'male', now: 'now' })
+    assert.strictEqual(u.isHost, false)
+    assert.strictEqual(u.isAdmin, false)
+    assert.strictEqual(u.reliability, 100)
+    assert.strictEqual(u.status, 'active')
+  })
+  test('调用方无法通过 profile 注入 isAdmin —— 构造函数只接受白名单字段', () => {
+    const u = newUserDoc({ openid: 'o', nickname: 'x', gender: 'male', now: 'now', isAdmin: true, isHost: true })
+    assert.strictEqual(u.isAdmin, false)
+    assert.strictEqual(u.isHost, false)
+  })
+})

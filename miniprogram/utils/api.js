@@ -49,6 +49,8 @@ module.exports = {
     markAttendance: (eventId, marks) => call('rating', 'markAttendance', { eventId, marks }),
   },
   account: {
+    /** 幂等建号:发局前无账号时调用;报名路径不需要(signups 内部建号) */
+    register: profile => call('account', 'register', { profile }),
     profile: () => call('account', 'profile'),
     /** 隐私政策第七条承诺的「查看我们持有的关于你的信息」 */
     exportMyData: () => call('account', 'exportMyData'),

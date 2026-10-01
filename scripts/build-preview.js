@@ -19,6 +19,11 @@ for (const [key, dir] of Object.entries(PAGES)) {
   pages[key] = { wxml: read(path.join(MP, 'pages', dir, 'index.wxml')), wxss: read(path.join(MP, 'pages', dir, 'index.wxss')), title: TITLES[key] }
 }
 const appWxss = read(path.join(MP, 'app.wxss'))
+// 自定义组件:预览时按标签名展开其 WXML/WXSS
+const components = {}
+for (const dir of fs.existsSync(path.join(MP, 'components')) ? fs.readdirSync(path.join(MP, 'components')) : []) {
+  components[dir] = { wxml: read(path.join(MP, 'components', dir, 'index.wxml')), wxss: read(path.join(MP, 'components', dir, 'index.wxss')) }
+}
 
 const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>小程序界面预览</title>
 <style>
@@ -41,14 +46,14 @@ const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>
 <style id="app-css"></style><style id="page-css"></style>
 </head><body>
 <div class="phone"><div class="nav" id="nav"></div><div class="page" id="mount"></div><div class="tabbar" id="tabbar" hidden><span class="on">周末</span><span>我的</span></div></div>
-<script>window.PAGES=${JSON.stringify(pages)};window.APP_WXSS=${JSON.stringify(appWxss)};</script>
+<script>window.PAGES=${JSON.stringify(pages)};window.APP_WXSS=${JSON.stringify(appWxss)};window.COMPONENTS=${JSON.stringify(components)};</script>
 <script>${read(path.join(ROOT, 'preview/render.js'))}</script>
 <script>${read(path.join(ROOT, 'preview/mock.js'))}</script>
 <script>
   const key = new URLSearchParams(location.search).get('page') || 'index'
   const p = window.PAGES[key]
   document.getElementById('app-css').textContent = convertWxss(window.APP_WXSS)
-  document.getElementById('page-css').textContent = convertWxss(p.wxss)
+  document.getElementById('page-css').textContent = convertWxss(p.wxss + Object.values(window.COMPONENTS).map(c => c.wxss).join(' '))
   document.getElementById('nav').textContent = p.title || (window.MOCK[key] && window.MOCK[key].event ? '' : '')
   document.getElementById('tabbar').hidden = !(key === 'index' || key === 'my')
   renderWxml(p.wxml, window.MOCK[key] || {}, document.getElementById('mount'))
