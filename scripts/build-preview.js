@@ -11,7 +11,7 @@ const MP = path.join(ROOT, 'miniprogram')
 const PAGES = { index: 'index', 'event-detail': 'event-detail', 'event-detail-sheet': 'event-detail', 'event-create': 'event-create',
   'signup-success': 'signup-success', poster: 'poster', chat: 'chat', rating: 'rating', my: 'my', privacy: 'privacy', admin: 'admin', host: 'host' }
 const TITLES = { index: '周末', 'event-detail': '', 'event-detail-sheet': '', 'event-create': '开个局', 'signup-success': '', poster: '分享海报',
-  chat: '行前沟通', rating: '', my: '我的', privacy: '账号与隐私', admin: '运营后台', host: '局主工具' }
+  chat: '行前沟通', rating: '', my: '我的局', privacy: '个人信息与隐私', admin: '运营后台', host: '局主工具' }
 
 const read = p => fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''
 const pages = {}
@@ -38,14 +38,15 @@ const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>
   .wx-switch i{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
   .wx-switch.on{background:#1a1a1a}.wx-switch.on i{left:22px}
   .wx-slider{width:100%}
-  a[data-wx=navigator]{display:block;color:inherit;text-decoration:none}
+  :where(a[data-wx=navigator]){display:block;color:inherit;text-decoration:none}
   .tabbar{position:absolute;bottom:0;left:0;right:0;height:56px;background:#FFFDF9;border-top:1px solid #EDE6DB;display:flex;justify-content:space-around;align-items:center;font-size:12px;color:#9A9084}
   .tabbar .on{color:#26221D;font-weight:600}
   .tabbar[hidden]{display:none}
+  .phone.has-tab .page{padding-bottom:64px}
 </style>
 <style id="app-css"></style><style id="page-css"></style>
 </head><body>
-<div class="phone"><div class="nav" id="nav"></div><div class="page" id="mount"></div><div class="tabbar" id="tabbar" hidden><span class="on">周末</span><span>我的</span></div></div>
+<div class="phone"><div class="nav" id="nav"></div><div class="page" id="mount"></div><div class="tabbar" id="tabbar" hidden><span id="tab-index">周末</span><span id="tab-my">我的局</span></div></div>
 <script>window.PAGES=${JSON.stringify(pages)};window.APP_WXSS=${JSON.stringify(appWxss)};window.COMPONENTS=${JSON.stringify(components)};</script>
 <script>${read(path.join(ROOT, 'preview/render.js'))}</script>
 <script>${read(path.join(ROOT, 'preview/mock.js'))}</script>
@@ -56,6 +57,9 @@ const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>
   document.getElementById('page-css').textContent = convertWxss(p.wxss + Object.values(window.COMPONENTS).map(c => c.wxss).join(' '))
   document.getElementById('nav').textContent = p.title || (window.MOCK[key] && window.MOCK[key].event ? '' : '')
   document.getElementById('tabbar').hidden = !(key === 'index' || key === 'my')
+  document.getElementById('tab-index').className = key === 'index' ? 'on' : ''
+  document.getElementById('tab-my').className = key === 'my' ? 'on' : ''
+  document.querySelector('.phone').classList.toggle('has-tab', key === 'index' || key === 'my')
   renderWxml(p.wxml, window.MOCK[key] || {}, document.getElementById('mount'))
 </script></body></html>`
 fs.writeFileSync(path.join(ROOT, 'preview/index.html'), html)

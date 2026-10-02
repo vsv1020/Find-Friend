@@ -1,18 +1,88 @@
-<navigator class="card" url="/pages/privacy/index">账号与隐私</navigator>
-
-<!-- 待评价放在最上面:活动刚结束时评价意愿最高,埋在下面就没人评了 -->
-<view wx:if="{{pendingRatings.length}}" class="card">
-  <view class="section">这些局结束了</view>
-  <view wx:for="{{pendingRatings}}" wx:key="event._id" class="rec"
-        data-id="{{item.event._id}}" data-ishost="{{item.isHost}}" bindtap="onTapRating">
-    <view>{{item.startText}} · {{item.event.venue.name}}</view>
-    <view class="muted">还有 {{item.count}} 位同行者没评价</view>
+<!-- 个人信息只占一行,点进去才是完整的资料与隐私页 -->
+<navigator class="card me" url="/pages/privacy/index">
+  <view wx:if="{{profile}}">
+    <view class="me-name">{{profile.nickname}}</view>
+    <view class="muted">靠谱度 {{profile.reliability}} · 个人信息与隐私</view>
   </view>
-</view>
+  <view wx:else class="me-name">个人信息与隐私</view>
+  <view class="go">›</view>
+</navigator>
 
 <view wx:if="{{loading}}" class="card muted">加载中…</view>
-<view wx:elif="{{!signups.length}}" class="card muted">还没报名过任何局。</view>
-<view wx:for="{{signups}}" wx:key="_id" class="card">
-  <view>{{item.startText}} · {{item.event.venue.name}}</view>
-  <view class="muted">{{item.statusText}}</view>
-</view>
+
+<block wx:else>
+  <!-- 待评价放在最前:活动刚结束时评价意愿最高,埋在下面就没人评了 -->
+  <view wx:if="{{pendingRatings.length}}" class="card">
+    <view class="section">这些局结束了,评一下?</view>
+    <view wx:for="{{pendingRatings}}" wx:key="event._id" class="row"
+          data-id="{{item.event._id}}" data-ishost="{{item.isHost}}" bindtap="onTapRating">
+      <view class="row-main">
+        <view class="row-when">{{item.startText}}</view>
+        <view class="row-venue">{{item.event.venue.name}}</view>
+      </view>
+      <view class="short-by">还有 {{item.count}} 位</view>
+    </view>
+  </view>
+
+  <view class="group-title">即将开始</view>
+  <view wx:if="{{!upcoming.length}}" class="card empty">
+    <view class="muted">这周末还没约。</view>
+    <view class="link" bindtap="onBrowse">去看看有什么局 ›</view>
+  </view>
+  <view wx:for="{{upcoming}}" wx:key="signupId" class="card ev tint-{{item.event.sceneType}}"
+        data-id="{{item.event._id}}" bindtap="onTapEvent">
+    <view class="ev-top">
+      <view class="when">
+        <view class="when-day">{{item.event.weekdayText}}</view>
+        <view class="when-clock">{{item.event.clockText}}</view>
+      </view>
+      <view class="ev-body">
+        <view class="scene-tag {{item.event.sceneType}}">{{item.event.sceneGlyph}} {{item.event.sceneText}}</view>
+        <view class="ev-venue">{{item.event.venue.name}}</view>
+        <view class="tone {{item.tone}}">{{item.label}}</view>
+      </view>
+    </view>
+    <view wx:if="{{item.canChat}}" class="chat-btn" data-id="{{item.event._id}}" catchtap="onTapChat">行前沟通 ›</view>
+  </view>
+
+  <block wx:if="{{hosted.length}}">
+    <view class="group-title">我发起的</view>
+    <view wx:for="{{hosted}}" wx:key="signupId" class="card ev"
+          data-id="{{item.event._id}}" bindtap="onTapEvent">
+      <view class="ev-top">
+        <view class="when">
+          <view class="when-day">{{item.event.weekdayText}}</view>
+          <view class="when-clock">{{item.event.clockText}}</view>
+        </view>
+        <view class="ev-body">
+          <view class="scene-tag {{item.event.sceneType}}">{{item.event.sceneGlyph}} {{item.event.sceneText}}</view>
+          <view class="ev-venue">{{item.event.venue.name}}</view>
+          <view class="tone {{item.tone}}">{{item.label}} · 已报名 {{item.event.confirmedCount}} 人</view>
+        </view>
+      </view>
+      <view class="actions">
+        <view wx:if="{{item.canChat}}" class="chat-btn" data-id="{{item.event._id}}" catchtap="onTapChat">行前沟通 ›</view>
+        <view class="chat-btn" data-id="{{item.event._id}}" catchtap="onTapHost">局主工具 ›</view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{past.length}}">
+    <view class="group-title fold" bindtap="onTogglePast">
+      过去的局 · {{past.length}}
+      <text class="muted">{{showPast ? '收起' : '展开'}}</text>
+    </view>
+    <view wx:if="{{showPast}}" class="card">
+      <view wx:for="{{past}}" wx:key="signupId" class="row" data-id="{{item.event._id}}" bindtap="onTapEvent">
+        <view class="row-main">
+          <view class="row-when">{{item.event.dayText}} {{item.event.clockText}}{{item.isHost ? ' · 我发起的' : ''}}</view>
+          <view class="row-venue">{{item.event.venue.name}}</view>
+        </view>
+        <view class="tone {{item.tone}}">{{item.label}}</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 后台入口只对管理员显示;权限仍由后台云函数逐次校验 -->
+  <navigator wx:if="{{profile && profile.isAdmin}}" class="card admin" url="/pages/admin/index">运营后台 ›</navigator>
+</block>
