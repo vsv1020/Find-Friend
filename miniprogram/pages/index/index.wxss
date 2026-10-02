@@ -1,0 +1,16 @@
+.hero { padding: 36rpx 32rpx 12rpx; }
+.hero-eyebrow { font-size: 24rpx; color: var(--mute); letter-spacing: 2rpx; }
+.hero-title { font-size: 48rpx; font-weight: 700; margin-top: 6rpx; letter-spacing: 1rpx; }
+.hero-sub { color: var(--ink-2); margin-top: 4rpx; }
+.empty { text-align: center; padding: 60rpx 32rpx; }
+.empty-title { font-size: 32rpx; font-weight: 600; margin-bottom: 8rpx; }
+.ev { padding: 28rpx 32rpx 24rpx; }
+.ev-top { display: flex; gap: 24rpx; align-items: flex-start; }
+.when { min-width: 120rpx; text-align: center; padding: 10rpx 0; border-right: 1rpx solid var(--line); }
+.when-day { font-size: 24rpx; color: var(--ink-2); }
+.when-clock { font-size: 40rpx; font-weight: 700; line-height: 1.2; letter-spacing: 1rpx; }
+.ev-body { flex: 1; min-width: 0; }
+.ev-venue { font-size: 34rpx; font-weight: 600; margin: 4rpx 0 2rpx; }
+.ev-bottom { display: flex; justify-content: space-between; align-items: center; }
+.fab { position: fixed; right: 32rpx; bottom: calc(140rpx + env(safe-area-inset-bottom)); background: var(--ink); color: #fff;
+       padding: 22rpx 36rpx; border-radius: 999rpx; font-weight: 600; box-shadow: 0 10rpx 30rpx rgba(38,34,29,.25); }

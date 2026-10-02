@@ -1,0 +1,15 @@
+.hero { padding: 36rpx 36rpx 32rpx; }
+.hero-when { display: flex; align-items: baseline; gap: 16rpx; margin-top: 12rpx; }
+.hero-day { font-size: 32rpx; color: var(--ink-2); }
+.hero-clock { font-size: 64rpx; font-weight: 700; letter-spacing: 1rpx; line-height: 1.1; }
+.hero-date { margin-top: 4rpx; }
+.hero-venue { font-size: 36rpx; font-weight: 600; margin-top: 16rpx; }
+.quote { margin-top: 20rpx; padding-left: 20rpx; border-left: 4rpx solid var(--amber); color: var(--ink-2); line-height: 1.7; }
+.venue-row { display: flex; justify-content: space-between; align-items: center; gap: 16rpx; }
+.venue-name { font-weight: 600; margin-bottom: 4rpx; }
+.venue-go { color: var(--amber); font-size: 26rpx; white-space: nowrap; }
+.seats-row { display: flex; justify-content: space-between; align-items: center; }
+.seats.big .seat { width: 24rpx; height: 24rpx; }
+.seats-note { margin-top: 14rpx; }
+.footer { padding: 16rpx 24rpx; padding-bottom: calc(24rpx + env(safe-area-inset-bottom)); }
+.report-link { text-align: center; padding: 16rpx; font-size: 24rpx; }

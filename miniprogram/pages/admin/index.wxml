@@ -1,0 +1,114 @@
+<view class="card">
+  <view style="font-weight:600;">自动审核</view>
+  <switch checked="{{autoApprove}}" bindchange="onToggleAutoApprove" />
+  <view class="muted">关闭时所有新局需你手动放行;局主(已授权)始终免审。</view>
+</view>
+
+<view class="card">
+  <view style="font-weight:600;">AI 预审</view>
+  <view class="seg">
+    <view wx:for="{{aiModes}}" wx:key="value" class="seg-item {{aiPrecheck === item.value ? 'active' : ''}}"
+          data-value="{{item.value}}" bindtap="onSetAiPrecheck">{{item.label}}</view>
+  </view>
+  <view class="muted">顾问模式只给建议不改状态;放行模式需两个模型一致且高置信,先跑 8 周顾问模式再开。</view>
+</view>
+
+<view wx:if="{{metrics}}" class="card">
+  <view style="font-weight:600;margin-bottom:12rpx;">成团率</view>
+  <view>整体 {{metrics.overall.formed}}/{{metrics.overall.total}} · 目标 {{metrics.overall.target * 100}}%</view>
+  <!-- 真北极星:官方局与补位局已剔除,这才是产品能否自己跑的信号 -->
+  <view>自然局 {{metrics.organic.formed}}/{{metrics.organic.total}} · 目标 {{metrics.organic.target * 100}}%</view>
+</view>
+
+<block wx:if="{{board}}">
+  <view wx:if="{{board.truncated}}" class="card muted">数据量已触及单次拉取上限,以下数字只覆盖最近的一部分记录。</view>
+
+  <view class="card">
+    <view class="dash-head">
+      <text style="font-weight:600;">报名转化 · 近 {{board.funnel.lookbackDays}} 天</text>
+      <text class="{{board.funnel.met ? 'met' : 'unmet'}}">{{board.funnel.met ? '✓' : '未达标'}}</text>
+    </view>
+    <view class="funnel">
+      <view class="funnel-cell"><view class="funnel-num">{{board.funnel.views}}</view><view class="muted">浏览</view></view>
+      <view class="funnel-cell"><view class="funnel-num">{{board.funnel.starts}}</view><view class="muted">开始报名</view></view>
+      <view class="funnel-cell"><view class="funnel-num">{{board.funnel.successes}}</view><view class="muted">报名成功</view></view>
+    </view>
+    <view>浏览 → 报名 {{board.funnel.rateText}} · 目标 {{board.funnel.targetText}}</view>
+    <view class="muted">按去重访客计</view>
+  </view>
+
+  <view class="card">
+    <view class="dash-head">
+      <text style="font-weight:600;">{{board.repeat.windowDays}} 天复购率</text>
+      <text class="{{board.repeat.met ? 'met' : 'unmet'}}">{{board.repeat.met ? '✓' : '未达标'}}</text>
+    </view>
+    <view>{{board.repeat.repeaters}}/{{board.repeat.users}} · {{board.repeat.rateText}} · 目标 {{board.repeat.targetText}}</view>
+    <!-- 首次参加不满窗口的人结果未揭晓,不进分母 -->
+    <view wx:if="{{board.repeat.pending}}" class="muted">另有 {{board.repeat.pending}} 人观察期未满</view>
+  </view>
+
+  <view class="card">
+    <view class="dash-head">
+      <text style="font-weight:600;">非官方局占比</text>
+      <text class="{{board.share.met ? 'met' : 'unmet'}}">{{board.share.met ? '✓' : '未达标'}}</text>
+    </view>
+    <view>{{board.share.organic}}/{{board.share.total}} · {{board.share.rateText}} · 目标 {{board.share.targetText}}</view>
+  </view>
+
+  <view class="card">
+    <view style="font-weight:600;margin-bottom:12rpx;">近 {{board.weekly.length}} 周趋势</view>
+    <view class="legend muted">
+      <text class="dot bar-published"></text>公开 <text class="dot bar-formed"></text>成团 <text class="dot bar-organic"></text>非官方
+    </view>
+    <view wx:for="{{board.weekly}}" wx:key="weekStart" class="week">
+      <view class="week-label muted">{{item.label}}</view>
+      <view class="week-bars">
+        <view class="bar-row"><view class="bar-track"><view class="bar bar-published" style="width:{{item.publishedWidth}};"></view></view><text class="bar-num">{{item.published}}</text></view>
+        <view class="bar-row"><view class="bar-track"><view class="bar bar-formed" style="width:{{item.formedWidth}};"></view></view><text class="bar-num">{{item.formed}}</text></view>
+        <view class="bar-row"><view class="bar-track"><view class="bar bar-organic" style="width:{{item.organicWidth}};"></view></view><text class="bar-num">{{item.organic}}</text></view>
+      </view>
+    </view>
+    <view class="muted">按活动开始时间归周(曼谷时间,周一起);本周多数局未到判定时点,成团数偏低属正常。</view>
+  </view>
+</block>
+
+<view class="card">
+  <view style="font-weight:600;margin-bottom:12rpx;">待审 {{pending.length}}</view>
+  <view wx:for="{{pending}}" wx:key="_id" class="rec">
+    <view>{{item.startText}} · {{item.venue.name}}</view>
+    <view class="muted">{{item.description}}</view>
+    <view class="row">
+      <view class="btn-sm" data-id="{{item._id}}" data-approved="true" bindtap="onReview">通过</view>
+      <view class="btn-sm" data-id="{{item._id}}" data-approved="false" bindtap="onReview">拒绝</view>
+    </view>
+  </view>
+</view>
+
+<view wx:if="{{reports.length}}" class="card">
+  <view style="font-weight:600;margin-bottom:12rpx;">待处理举报 {{reports.length}}</view>
+  <view wx:for="{{reports}}" wx:key="_id" class="rec" data-index="{{index}}" bindtap="onHandleReport">
+    <view>{{item.reason}} · {{item.targetType}}</view>
+    <view class="muted">{{item.detail || item.context.content || item.context.description || ''}}</view>
+  </view>
+</view>
+
+<view class="card">
+  <view style="font-weight:600;margin-bottom:12rpx;">推荐场地 {{venues.length}}</view>
+  <view wx:for="{{venues}}" wx:key="_id" class="rec row-between">
+    <view>
+      <view>{{item.name}}<text wx:if="{{!item.isActive}}" class="muted"> · 已下架</text></view>
+      <view class="muted">成团 {{item.formed}} · 公开 {{item.published}}</view>
+    </view>
+    <view class="btn-sm ghost" data-id="{{item._id}}" data-active="{{item.isActive}}" bindtap="onToggleVenue">{{item.isActive ? '下架' : '上架'}}</view>
+  </view>
+  <view wx:if="{{hotspots.length}}" style="margin-top:16rpx;">
+    <view class="muted" style="margin-bottom:8rpx;">常被选但还没收录的地方</view>
+    <view wx:for="{{hotspots}}" wx:key="geohash" class="rec row-between">
+      <view>
+        <view>{{item.name}}</view>
+        <view class="muted">公开 {{item.published}} · 成团 {{item.formed}}</view>
+      </view>
+      <view class="btn-sm" data-index="{{index}}" bindtap="onAdoptHotspot">收录</view>
+    </view>
+  </view>
+</view>

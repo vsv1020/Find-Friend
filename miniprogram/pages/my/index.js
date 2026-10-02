@@ -1,0 +1,31 @@
+const api = require('../../utils/api')
+const fmt = require('../../utils/format')
+
+const STATUS_TEXT = { confirmed: '已报名', waitlist: '候补中', attended: '已参加', no_show: '未到场', cancelled: '已取消' }
+
+Page({
+  data: { signups: [], pendingRatings: [], loading: true },
+
+  onShow() { this.load() },
+
+  async load() {
+    try {
+      const [list, pending] = await Promise.all([
+        api.signups.mine(),
+        api.rating.pending().catch(() => []),
+      ])
+      this.setData({
+        loading: false,
+        signups: list.map(s => ({ ...s, startText: fmt.formatStart(s.event.startAt), statusText: STATUS_TEXT[s.status] || s.status })),
+        pendingRatings: pending.map(p => ({
+          ...p, startText: fmt.formatStart(p.event.startAt), count: p.remaining.length,
+        })),
+      })
+    } catch (e) { this.setData({ loading: false }) }
+  },
+
+  onTapRating(e) {
+    const { id, ishost } = e.currentTarget.dataset
+    wx.navigateTo({ url: `/pages/rating/index?eventId=${id}&isHost=${ishost ? 1 : 0}` })
+  },
+})

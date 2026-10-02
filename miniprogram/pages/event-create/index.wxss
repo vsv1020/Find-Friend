@@ -1,0 +1,16 @@
+.label { font-weight: 600; margin-bottom: 16rpx; }
+.scene-row, .slot-row { display: flex; gap: 16rpx; flex-wrap: wrap; }
+.scene-item { flex: 1; min-width: 180rpx; padding: 24rpx; border-radius: 12rpx; background: #F1ECE3; }
+.scene-item.active { background: var(--ink); color: #fff; }
+.scene-label { font-weight: 600; }
+.scene-hint { font-size: 22rpx; opacity: .7; margin-top: 6rpx; }
+.slot-item { padding: 20rpx 28rpx; border-radius: 999rpx; background: #F1ECE3; }
+.slot-item.active { background: var(--ink); color: #fff; }
+.venue-name { font-weight: 600; }
+.input { background: #F1ECE3; border-radius: 12rpx; padding: 24rpx; }
+.footer { padding: 24rpx; padding-bottom: calc(24rpx + env(safe-area-inset-bottom)); }
+.btn-primary.disabled { opacity: .5; }
+.chips { display: flex; flex-wrap: wrap; gap: 12rpx; margin-bottom: 20rpx; }
+.chip { padding: 14rpx 22rpx; border-radius: 999rpx; background: #F1ECE3; font-size: 26rpx; }
+.chip.active { background: var(--ink); color: #fff; }
+.chip-heat { font-size: 22rpx; opacity: .7; }

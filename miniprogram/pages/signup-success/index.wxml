@@ -1,0 +1,21 @@
+<view class="card done-card">
+  <view class="done-mark">{{status === 'waitlist' ? '…' : '✓'}}</view>
+  <view class="done-title">{{status === 'waitlist' ? '先排着,有位子就叫你' : '约好了'}}</view>
+  <view class="ink-2">
+    {{status === 'waitlist'
+      ? '名额暂满。有人取消会第一时间通知你。'
+      : '人齐了会通知你时间地点。开始前 6 小时定成不成。'}}
+  </view>
+  <view wx:if="{{!subscribed}}" class="muted" style="margin-top:12rpx;">没开通知的话,记得回来看一眼。</view>
+</view>
+
+<view wx:if="{{recommends.length}}" class="card">
+  <view class="rec-title">这周末还有这些</view>
+  <view wx:for="{{recommends}}" wx:key="_id" class="rec" data-id="{{item._id}}" bindtap="onTapRecommend">
+    <view class="rec-main">
+      <view class="rec-when">{{item.startText}}</view>
+      <view class="rec-venue">{{item.venue.name}}</view>
+    </view>
+    <view class="short-by {{item.formed ? 'done' : ''}}">{{item.shortByText}}</view>
+  </view>
+</view>

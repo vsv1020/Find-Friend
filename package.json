@@ -1,0 +1,18 @@
+{
+  "name": "chuqu-miniprogram",
+  "version": "0.1.0",
+  "private": true,
+  "description": "周末组局小程序(占位名,品牌名待定 —— 见 docs/04 D15)",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "sync:config": "node scripts/sync-config.js && node scripts/sync-legal.js",
+    "precommit": "npm run sync:config && npm test",
+    "preview": "node scripts/build-preview.js && node scripts/screenshot-preview.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "playwright-core": "1.56"
+  }
+}

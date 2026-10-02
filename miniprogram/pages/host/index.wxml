@@ -1,0 +1,66 @@
+<view wx:if="{{loading}}" class="card muted">加载中…</view>
+
+<block wx:else>
+  <view wx:if="{{event}}" class="card">
+    <view class="muted">{{event.sceneText}}</view>
+    <view class="title">{{event.dateText}} {{event.startText}} · {{event.venue.name}}</view>
+    <view class="muted">已确认 {{event.confirmedCount}} 人 · 最多 {{event.capacityMax}} 人</view>
+  </view>
+
+  <!-- 名单:靠谱度与爬约次数仅局主可见(D10),不在任何其他页面出现 -->
+  <view class="card">
+    <view class="label">报名的人</view>
+    <view wx:if="{{!roster.length}}" class="muted">还没有人报名</view>
+    <view wx:for="{{roster}}" wx:key="userId" class="row">
+      <view class="who">
+        <text>{{item.nickname}}</text>
+        <text wx:if="{{item.isHostSignup}}" class="tag">局主</text>
+        <text class="tag status-{{item.status}}">{{item.statusText}}</text>
+      </view>
+      <view class="score {{item.lowReliability ? 'warn' : ''}}">
+        靠谱度 {{item.reliability}}<text wx:if="{{item.noShowCount}}"> · 爬约 {{item.noShowCount}} 次</text>
+      </view>
+    </view>
+    <view class="muted note">靠谱度只有你能看到,请不要转述给其他人。</view>
+  </view>
+
+  <block wx:if="{{canManage}}">
+    <view class="card">
+      <view class="label">群发通知</view>
+      <textarea class="textarea" placeholder="比如:门口见,我穿蓝色外套" maxlength="{{broadcastMax}}"
+                value="{{content}}" bindinput="onContentInput" auto-height />
+      <view class="muted note">{{cooldownText}}</view>
+      <view class="btn-primary {{coolingDown || sending ? 'disabled' : ''}}" bindtap="onBroadcast">
+        {{sending ? '发送中…' : '发给所有已确认的人'}}
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="label">改期</view>
+      <view class="slot-row">
+        <view wx:for="{{slots}}" wx:key="startAt"
+              class="slot-item {{slotIndex === index ? 'active' : ''}}"
+              data-index="{{index}}" bindtap="onSelectSlot">{{item.label}}</view>
+      </view>
+      <view class="custom-row">
+        <picker mode="date" start="{{dateStart}}" value="{{customDate}}" bindchange="onDateChange">
+          <view class="picker {{customDate ? 'active' : ''}}">{{customDate || '选日期'}}</view>
+        </picker>
+        <picker mode="time" value="{{customTime}}" bindchange="onTimeChange">
+          <view class="picker {{customTime ? 'active' : ''}}">{{customTime || '选时间'}}</view>
+        </picker>
+      </view>
+      <view class="muted note">曼谷时间。已成团的局只能往后改;改期后会重新催报名。</view>
+      <view class="btn-ghost {{rescheduling ? 'disabled' : ''}}" bindtap="onReschedule">确认改期</view>
+    </view>
+
+    <view class="danger" bindtap="onCancelEvent">取消整个局</view>
+  </block>
+
+  <view wx:elif="{{isDone}}" class="card">
+    <view class="label">活动已结束</view>
+    <view class="btn-ghost" bindtap="onOpenRating">标记到场情况</view>
+  </view>
+
+  <view wx:elif="{{event}}" class="card muted">这个局当前状态不能再修改。</view>
+</block>

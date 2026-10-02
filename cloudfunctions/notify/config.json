@@ -1,0 +1,1 @@
+{ "triggers": [{ "name": "notifyDrain", "type": "timer", "config": "0 * * * * * *" }] }

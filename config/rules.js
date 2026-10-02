@@ -1,0 +1,300 @@
+/**
+ * 业务规则常量 —— 所有决策值的唯一来源
+ *
+ * 来源:docs/04-决策清单.md(2026-08-24 定稿)
+ * 原则:D02/D03/D04/D06/D10 等全部为可配置项,严禁在业务代码里写魔法数字。
+ *
+ * 同步方式:小程序端直接 import;云函数目录为独立 node 模块,
+ * 通过 `npm run sync:config` 复制本文件到各云函数的 config/ 下(见 package.json)。
+ */
+
+/** 场景类型 */
+const SCENE = {
+  COFFEE: 'coffee', // 下午咖啡局 —— 冷启动主力场景
+  ART: 'art',       // 艺术展 / 市集局
+  BAR: 'bar',       // 晚间小酒馆局
+}
+
+/**
+ * D02 最低成团人数 / D03 人数上限
+ * ⚠️ 人数均「含局主」。咖啡局 min=2 即「局主 + 1 名报名者」。
+ * capacityMin 由系统按场景固定,不允许局主填写(局主会一律填最小值)。
+ * capacityMax 局主可在 [capacityMin, capacityHardMax] 内调整。
+ */
+const SCENE_RULES = {
+  [SCENE.COFFEE]: {
+    label: '下午咖啡局',
+    capacityMin: 2,
+    capacityMaxDefault: 4,
+    capacityHardMax: 6,      // 超过 6 人一张咖啡桌会裂成小圈子,伤害「零尬聊」体验
+    priceEstDefaultTHB: 200,
+    durationMinDefault: 120,
+  },
+  [SCENE.ART]: {
+    label: '艺术展 / 市集局',
+    capacityMin: 3,
+    capacityMaxDefault: 6,
+    capacityHardMax: 8,
+    priceEstDefaultTHB: 300,
+    durationMinDefault: 180,
+  },
+  [SCENE.BAR]: {
+    label: '晚间小酒馆局',
+    capacityMin: 4,
+    capacityMaxDefault: 8,
+    capacityHardMax: 10,
+    priceEstDefaultTHB: 600,
+    durationMinDefault: 180,
+  },
+}
+
+/** D04 成团判定时点 —— 活动开始前多久判定成团/解散 */
+const FORMATION = {
+  /** 判定提前量(小时)。定稿值 6;冷启动期若体验反馈差可调至 12。 */
+  judgeBeforeStartHours: 6,
+  /** 判定任务扫描间隔(分钟)。判定必须幂等,重复执行不得重复发通知。 */
+  scanIntervalMinutes: 15,
+  /**
+   * D05 成团后不锁定报名。
+   * 成团后继续开放报名,直到人数上限或开始前 signupCloseBeforeStartHours。
+   */
+  lockOnFormed: false,
+  /** 报名截止时点(开始前小时数)。给局主一个确定的最终人数去订位。 */
+  signupCloseBeforeStartHours: 2,
+  /**
+   * D04 的配套缓解:判定时点提前到 6h 后,用户当天才知道结果。
+   * 因此在开始前 24h 向「已报名者 + 局主」发一条催报名通知(还差 N 人,转发给朋友)。
+   */
+  rallyNoticeBeforeStartHours: 24,
+  /**
+   * 催报名的最小提前量(相对判定时点)。
+   * 若定时任务曾失败,补发一条离判定只剩几分钟的催报名毫无用处 ——
+   * 用户会先收到「还差 1 人」再立刻收到「已解散」,两条通知打架。
+   * 因此距判定不足该小时数时,直接跳过催报名。
+   */
+  rallyMinLeadHours: 2,
+}
+
+/**
+ * D06 审核策略
+ * 审核对报名者完全不可见 —— 未通过的局不出现在任何列表中。
+ * 局主端可见「审核中」状态,否则局主不知道自己的局为什么没出现。
+ */
+const REVIEW = {
+  /**
+   * 全局自动审核开关。
+   * true  → 新局直接进 open,跳过 pending_review
+   * false → 新局进 pending_review,等管理员手动放行
+   * 运行时可在运营后台切换,不需要发版。
+   */
+  autoApprove: false,
+  /**
+   * D14 局主权限白名单:users.isHost === true 的用户发局免审,
+   * 无论 autoApprove 为何值。这是「给权限不给钱」激励的核心载体。
+   */
+  hostBypassReview: true,
+  /**
+   * AI 辅助预审模式(见 docs/09):off | advisory | gate。
+   * 运行时以 settings.global.aiPrecheck 为准,此处仅为默认值。
+   * advisory:模型建议只进 reviewQueue,不改任何局的状态;gate:高置信 pass 才自动放行。
+   * 模型的 reject 在任何模式下都不会直接生效 —— 那是人的权力。
+   */
+  aiPrecheck: 'off',
+  /** 预审调用超时(毫秒)。发局是同步路径,超时即降级为未评审,不能拖住用户 */
+  aiPrecheckTimeoutMs: 8000,
+  /**
+   * 参与预审的 provider。多个并行调用,结果按 reviewer.combine 合并:不一致即交人工。
+   * deepseek = 主评(国内可达);jev = 第二意见(TypeSafe AI,中文能力待校准)。
+   * 密钥来自云函数环境变量 DEEPSEEK_API_KEY / JEV_API_KEY,缺失的 provider 自动跳过。
+   */
+  aiProviders: ['deepseek', 'jev'],
+}
+
+/**
+ * D07 性别配比 —— V1 不做自动配比规则。
+ * 性别仍按 D08 必填采集,仅供管理员人工审核参考,以及 V2 的算法层使用。
+ * ⚠️ 收集但暂不使用的字段,必须在隐私政策中说明用途(活动氛围平衡与安全审核),
+ *    否则在 PDPA 下属于合规瑕疵。
+ */
+const GENDER_RATIO = {
+  enabled: false,
+  // 以下参数在 enabled 转为 true 时生效(V2)
+  maxSingleGenderRatio: 2 / 3,
+  minSignupsToApply: 4,
+  hardEnforceScenes: [SCENE.BAR],
+}
+
+/** D08 性别选项。OTHER 计入总人数,但不参与任何比例计算。 */
+const GENDER = {
+  MALE: 'male',
+  FEMALE: 'female',
+  OTHER: 'other', // 不便透露
+}
+
+/**
+ * D09 地点 —— 允许自由输入。
+ * 用 wx.chooseLocation 选点,同时保存 name / address / lat / lng。
+ * 保存坐标使得「场地热度」仍可通过 geohash 聚合统计出来,不因自由输入而丢失该维度。
+ * 假地址风险由 D06 的手动审核开关兜底。
+ */
+const VENUE = {
+  allowFreeInput: true,
+  /** 推荐场地列表(非强制)。管理员后台维护,发局时置顶展示以降低填写成本。 */
+  showSuggestedVenues: true,
+  /** 热度聚合精度。geohash 6 位约 ±0.6km,足以把同一家店的多次选点聚到一起。 */
+  heatmapGeohashPrecision: 6,
+  /** 发局表单展示的推荐场地数。一屏放得下、不用滚就能点到 */
+  suggestLimit: 8,
+  /** 后台「未收录热点」门槛:一个格子里公开过几个局才值得收录 */
+  hotspotMinPublished: 2,
+  /** 热度统计回看的局数上限(按 publishedAt 倒序) */
+  heatFetchLimit: 1000,
+  /** 推荐场地热度的匹配半径(米)。选点误差 + 同一商场内的店,250m 够用且不会串到隔壁街 */
+  heatRadiusM: 250,
+}
+
+/**
+ * D10 取消与爽约
+ * 记录只对局主可见(报名者列表中显示靠谱度),不向其他参与者公开 ——
+ * 公开会制造评判感,与产品调性冲突。
+ */
+const NO_SHOW = {
+  /** open 状态下取消不算爽约 —— 鼓励尽早取消,把位置让出来。 */
+  countCancelBeforeFormed: false,
+  /** formed 之后取消算 1 次。 */
+  countCancelAfterFormed: true,
+  /** 未取消且未到场(局主活动后一键标记)算 1 次。 */
+  countNoShow: true,
+  /** 累计达到该次数 → 限制报名。 */
+  restrictThreshold: 2,
+  restrictDays: 14,
+  /** 累计达到该次数 → 进人工复核,由管理员决定是否封禁。 */
+  manualReviewThreshold: 3,
+}
+
+/** D10 靠谱度评价 —— 仅此三个枚举,不可扩展(PRD §5 结构层第四条) */
+const RELIABILITY_MARK = {
+  ON_TIME: 'on_time',
+  LATE: 'late',
+  NO_SHOW: 'no_show',
+}
+
+/** D11 保证金 —— V1 不收。爽约率 >25% 且持续 4 周时重新评估。 */
+const DEPOSIT = {
+  enabled: false,
+  amountTHB: 0,
+}
+
+/**
+ * D12 北极星指标 —— 双指标
+ * 整体成团率是保健指标;非官方局成团率才是「产品能否自己跑」的真信号。
+ */
+const METRICS = {
+  /** 保健指标:整体成团率(含官方局) */
+  formationRateTarget: 0.6,
+  /** 真北极星:非官方局成团率(isOfficial=false 且管理员未补位),8 周内达标 */
+  organicFormationRateTarget: 0.4,
+  organicTargetWeeks: 8,
+  /** PRD §8 辅助指标 */
+  repeatParticipationRateTarget: 0.35, // 30 天内二次参加
+  signupConversionRateTarget: 0.25,    // 详情页打开 → 完成报名
+  organicHostShareTarget: 0.5,         // 非官方局占比,8 周内
+  /** 二次参加的观察窗口(天):首次 attended 后该天数内(按曼谷自然日,含当天)再次 attended 记为复购 */
+  repeatWindowDays: 30,
+  /** 看板趋势展示的周数,与 organicTargetWeeks 同为 8 周但含义不同(展示跨度 vs 达标期限) */
+  trendWeeks: 8,
+  /** 报名漏斗只看最近 N 天的埋点 —— 冷启动期的历史流量结构与现在差异太大,全量平均会失真 */
+  funnelLookbackDays: 30,
+  /**
+   * 看板单次拉取上限。云函数超时 3s(默认),再大就要改走离线聚合;
+   * 触顶时 admin 云函数会在返回里标记 truncated,提示数字已不完整。
+   */
+  dashboardFetchLimit: { events: 1000, signups: 2000, analyticsEvents: 5000 },
+}
+
+/** 局状态机(见 docs/02 §4)。状态流转必须写入 eventStatusLog 便于排障。 */
+const EVENT_STATUS = {
+  DRAFT: 'draft',
+  PENDING_REVIEW: 'pending_review',
+  REJECTED: 'rejected',
+  OPEN: 'open',
+  FORMED: 'formed',
+  CANCELLED_LOW: 'cancelled_low',   // 判定时未达最低人数,自动解散
+  CANCELLED_HOST: 'cancelled_host', // 局主主动取消,计入成团率分母且算未成团
+  DONE: 'done',
+  ARCHIVED: 'archived',
+}
+
+const SIGNUP_STATUS = {
+  APPLIED: 'applied',
+  WAITLIST: 'waitlist',
+  CONFIRMED: 'confirmed',
+  CANCELLED: 'cancelled',
+  ATTENDED: 'attended',
+  NO_SHOW: 'no_show',
+}
+
+/** 群聊归档:活动结束后 48 小时转只读(PRD §4.1) */
+const CHAT = {
+  archiveAfterEndHours: 48,
+}
+
+/**
+ * T23 局主工具包
+ * 群发走订阅消息,一个局主刷屏会让报名者直接拒收整个模板 ——
+ * 拒收是账号级的,伤害的是所有局主,所以冷却是硬限制,不是体验优化。
+ */
+const HOST_TOOLS = {
+  broadcastCooldownMinutes: 10,
+  broadcastMaxLength: 200,
+  cancelReasonMaxLength: 100,
+  /** 名单与通知查询的上限。人数硬顶 10 + 候补,100 足够;防超大结果集拖垮循环 */
+  rosterQueryLimit: 100,
+  /**
+   * 改期免罚窗口(小时)。formed 之后取消本应记爬约(D10),但改期是局主单方面改变了约定 ——
+   * 改动后来不了的人在此窗口内取消不记爬约,否则等于让参与者为局主的决定背锅。
+   */
+  rescheduleGraceHours: 24,
+  /** 改期冷却(分钟)。每改一次全员收一条通知,反复改期就是骚扰 */
+  rescheduleCooldownMinutes: 60,
+}
+
+/**
+ * 通知通道(见 docs/03 §4 §9)
+ * ⚠️ getPhoneNumber 返回的是微信绑定的手机号(目标用户大多为 +86),
+ *    不等于用户在泰国能收到短信的号码 —— 因此手机号只作账号唯一性锚点,
+ *    通知主通道是订阅消息,短信仅对填写了 notifyPhone(泰国号)的用户生效。
+ */
+const NOTIFY = {
+  primaryChannel: 'wx_subscribe',
+  smsFallbackEnabled: false, // V1.0 补 notifyPhone 后再开
+  smsFallbackTemplates: ['event_formed', 'event_cancelled'],
+  /** 发送端每次处理的待发条数;定时触发器每分钟一次 */
+  drainBatchSize: 100,
+  /** 临时性错误(限流、网络)最多重试次数,超过即标 failed */
+  maxAttempts: 3,
+  /**
+   * templateKey → 订阅消息模板。模板 ID 在微信后台申请后填入云函数环境变量(envKey),
+   * 字段名(thing1/time2 …)由所选模板决定,部署时按实际模板对照 fields 调整。
+   * 缺模板 ID 的通知标为 skipped_no_template,不会堆在队列里反复失败。
+   */
+  templates: {
+    event_formed:        { envKey: 'TMPL_EVENT_FORMED',        title: '人齐了' },
+    event_cancelled_low: { envKey: 'TMPL_EVENT_CANCELLED',     title: '这次没凑齐' },
+    event_rally:         { envKey: 'TMPL_EVENT_RALLY',         title: '还差几个人' },
+    event_rescheduled:   { envKey: 'TMPL_EVENT_RESCHEDULED',   title: '时间改了' },
+    waitlist_promoted:   { envKey: 'TMPL_WAITLIST_PROMOTED',   title: '你有位置了' },
+    review_invite:       { envKey: 'TMPL_REVIEW_INVITE',       title: '一起去过的人怎么样' },
+    host_broadcast:      { envKey: 'TMPL_HOST_BROADCAST',      title: '局主有话说' },
+  },
+}
+
+module.exports = {
+  SCENE, SCENE_RULES,
+  FORMATION, REVIEW,
+  GENDER, GENDER_RATIO,
+  VENUE, NO_SHOW, RELIABILITY_MARK,
+  DEPOSIT, METRICS,
+  EVENT_STATUS, SIGNUP_STATUS,
+  CHAT, NOTIFY, HOST_TOOLS,
+}

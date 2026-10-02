@@ -1,0 +1,52 @@
+<view wx:if="{{loading}}" class="card muted">加载中…</view>
+
+<block wx:elif="{{event}}">
+  <view class="card hero tint-{{event.sceneType}}">
+    <view class="scene-tag {{event.sceneType}}">{{event.sceneGlyph}} {{event.sceneText}}</view>
+    <view class="hero-when">
+      <text class="hero-day">{{event.weekdayText}}</text>
+      <text class="hero-clock">{{event.clockText}}</text>
+    </view>
+    <view class="hero-date muted">{{event.dayText}} · 人均约 ฿{{event.priceEstTHB}}</view>
+    <view class="hero-venue">{{event.venue.name}}</view>
+    <view wx:if="{{event.description}}" class="quote">“{{event.description}}”</view>
+  </view>
+
+  <view class="card venue" bindtap="onOpenLocation">
+    <view class="venue-row">
+      <view>
+        <view class="venue-name">{{event.venue.name}}</view>
+        <view class="muted">{{event.venue.address}}</view>
+      </view>
+      <view class="venue-go">地图 ›</view>
+    </view>
+  </view>
+
+  <!--
+    只显示计数,不显示任何参与者身份。
+    这不是设计偷懒,是 PRD §5「只匹配活动不匹配人」的界面约束。
+  -->
+  <view class="card seats-card">
+    <view class="seats-row">
+      <view class="seats big {{event.formed ? 'done' : ''}}">
+        <view wx:for="{{event.seats}}" wx:for-item="on" wx:key="index" class="seat {{on ? 'on' : ''}}"></view>
+      </view>
+      <view class="short-by {{event.formed ? 'done' : ''}}">{{event.shortByText}}</view>
+    </view>
+    <view class="muted seats-note">
+      {{event.formed ? '人已经够了,来了就能坐下。' : '已报名 ' + event.confirmedCount + ' 人,最多 ' + event.capacityMax + ' 人。开始前 6 小时定成不成。'}}
+    </view>
+  </view>
+
+  <view class="footer">
+    <view class="btn-primary" bindtap="onTapSignup">我有空,报名</view>
+    <view wx:if="{{event.canChat}}" class="btn-ghost" bindtap="onOpenChat">行前沟通</view>
+    <view class="btn-ghost" bindtap="onOpenPoster">生成海报,发朋友圈</view>
+    <view wx:if="{{event.viewer.isHost}}" class="btn-ghost" bindtap="onOpenHostTools">局主工具</view>
+    <view class="report-link muted" bindtap="onReport">举报这个局</view>
+  </view>
+</block>
+
+<!-- 报名弹层:公用建号组件(昵称 + 性别 + 同意 + 手机号授权) -->
+<profile-sheet show="{{showProfileSheet}}" title="最后一步" confirm-text="确认报名"
+               bind:submit="onProfileSubmit" bind:close="onCloseSheet" />

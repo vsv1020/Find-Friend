@@ -1,0 +1,3 @@
+.section { font-weight: 600; margin-bottom: 16rpx; }
+.rec { padding: 20rpx 0; border-bottom: 1rpx solid #f0f0f0; }
+.rec:last-child { border-bottom: none; }

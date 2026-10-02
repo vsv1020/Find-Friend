@@ -1,0 +1,101 @@
+/**
+ * 局详情页 —— V0.5 的核心页面
+ *
+ * 两条不可妥协的约束:
+ * 1. 未登录可完整浏览(PRD §4.1「先看内容再要身份」),因此埋点必须带 anonId;
+ * 2. 只显示「已报 n / 还差 m」的计数,绝不显示参与者头像或昵称 ——
+ *    否则会立刻退化成「看人报名」,违背 PRD §5「只匹配活动不匹配人」。
+ */
+const api = require('../../utils/api')
+const { track, EVENTS } = require('../../utils/track')
+const fmt = require('../../utils/format')
+const { showReportSheet } = require('../../utils/report-sheet')
+
+Page({
+  data: {
+    event: null,
+    loading: true,
+    /** 报名弹层:需要昵称 + 性别(D08 必填三选项) */
+    showProfileSheet: false,
+  },
+
+  onLoad(query) {
+    // 小程序码扫入时带的是 8 位分享短码(scene 有 32 字符上限,放不下 _id)
+    this.eventId = query.eventId || null
+    this.shareCode = query.scene || query.shareCode || null
+    this.load()
+  },
+
+  async load() {
+    try {
+      const event = await api.events.detail(this.eventId, this.shareCode)
+      this.eventId = event._id
+      this.setData({
+        loading: false,
+        event: {
+          ...fmt.decorate(event),
+          canChat: event.status === 'formed' || event.status === 'done' || event.status === 'archived',
+        },
+      })
+      track(EVENTS.EVENT_DETAIL_VIEW, { eventId: this.eventId, sceneType: event.sceneType })
+    } catch (e) {
+      this.setData({ loading: false })
+      wx.showToast({ title: e.message || '活动不存在', icon: 'none' })
+    }
+  },
+
+  onTapSignup() {
+    track(EVENTS.SIGNUP_START, { eventId: this.eventId })
+    this.setData({ showProfileSheet: true })
+  },
+
+  /**
+   * 手机号一键授权(D06 企业主体解锁)。
+   * ⚠️ 拿到的是微信绑定号(多为 +86),只作账号唯一性锚点,不作通知通道 —— 见 docs/03 §4。
+   */
+  /** 组件已校验昵称/性别/同意;这里只负责报名 */
+  async onProfileSubmit(e) {
+    const { nickname, gender, phoneCode } = e.detail
+    wx.showLoading({ title: '报名中' })
+    try {
+      const r = await api.signups.join(this.eventId, { phoneCode, nickname, gender })
+      track(EVENTS.SIGNUP_SUCCESS, { eventId: this.eventId, status: r.status })
+      wx.redirectTo({ url: `/pages/signup-success/index?eventId=${this.eventId}&status=${r.status}` })
+    } catch (err) {
+      wx.showToast({ title: err.message || '报名失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  onCloseSheet() { this.setData({ showProfileSheet: false }) },
+
+  /** 成团后才对已确认的参与者显示 —— 与云函数 canEnter 的判定保持一致 */
+  onReport() { showReportSheet('event', this.eventId) },
+
+  onOpenChat() {
+    wx.navigateTo({ url: `/pages/chat/index?eventId=${this.eventId}` })
+  },
+
+  onOpenPoster() {
+    wx.navigateTo({ url: `/pages/poster/index?eventId=${this.eventId}` })
+  },
+
+  onOpenHostTools() {
+    wx.navigateTo({ url: `/pages/host/index?eventId=${this.eventId}` })
+  },
+
+  onOpenLocation() {
+    const { venue } = this.data.event
+    if (venue && venue.lat) wx.openLocation({ latitude: venue.lat, longitude: venue.lng, name: venue.name, address: venue.address })
+  },
+
+  /** 分享到群 —— 小程序无法分享到朋友圈,朋友圈走海报(见 docs/03 §6.1) */
+  onShareAppMessage() {
+    const e = this.data.event || {}
+    return {
+      title: `${e.startText} ${e.sceneText}·${(e.venue || {}).name || ''} ${e.shortByText}`,
+      path: `/pages/event-detail/index?eventId=${this.eventId}`,
+    }
+  },
+})

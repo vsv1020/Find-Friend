@@ -1,0 +1,4 @@
+.row { display: flex; justify-content: space-between; padding: 12rpx 0; }
+.item { padding: 24rpx 0; border-bottom: 1rpx solid #f0f0f0; }
+.item:last-child { border-bottom: none; }
+.danger { color: #c0392b; }

@@ -1,0 +1,67 @@
+<view class="card">
+  <view class="label">什么局</view>
+  <view class="scene-row">
+    <view wx:for="{{scenes}}" wx:key="value"
+          class="scene-item {{sceneType === item.value ? 'active' : ''}}"
+          data-value="{{item.value}}" bindtap="onSelectScene">
+      <view class="scene-label">{{item.label}}</view>
+      <view class="scene-hint">{{item.hint}}</view>
+    </view>
+  </view>
+</view>
+
+<view class="card">
+  <view class="label">什么时候</view>
+  <view class="slot-row">
+    <view wx:for="{{slots}}" wx:key="startAt"
+          class="slot-item {{slotIndex === index && !customStartAt ? 'active' : ''}}"
+          data-index="{{index}}" bindtap="onSelectSlot">{{item.label}}</view>
+    <picker mode="date" start="{{minDate}}" end="{{maxDate}}" value="{{customDate}}" bindchange="onCustomDate">
+      <view class="slot-item {{customStartAt ? 'active' : ''}}">{{customDate || '选日期'}}</view>
+    </picker>
+    <picker mode="time" value="{{customTime}}" bindchange="onCustomTime">
+      <view class="slot-item {{customStartAt ? 'active' : ''}}">{{customTime || '选时间'}}</view>
+    </picker>
+  </view>
+  <view wx:if="{{customStartAt}}" class="muted">自定义:{{customDate}} {{customTime}}(曼谷时间)</view>
+</view>
+
+<view class="card" bindtap="onChooseVenue">
+  <view class="label">在哪</view>
+  <!-- 推荐场地:点一下就填好,不想用就下面自己选点(D09 自由输入不受限制) -->
+  <view wx:if="{{suggestions.length}}" class="chips">
+    <view wx:for="{{suggestions}}" wx:key="_id"
+          class="chip {{venue && venue.name === item.name ? 'active' : ''}}"
+          data-index="{{index}}" catchtap="onPickSuggestion">
+      {{item.name}}<text wx:if="{{item.formed}}" class="chip-heat"> · 成团 {{item.formed}}</text>
+    </view>
+  </view>
+  <view wx:if="{{venue}}">
+    <view class="venue-name">{{venue.name}}</view>
+    <view class="muted">{{venue.address}}</view>
+  </view>
+  <view wx:else class="muted">点击选择地点</view>
+</view>
+
+<view class="card">
+  <view class="label">最多几人</view>
+  <slider min="{{capacityMin}}" max="{{capacityHardMax}}" value="{{capacityMax}}"
+          show-value activeColor="#D98A3C" backgroundColor="#EDE6DB" block-color="#26221D" bindchange="onCapacityChange" />
+  <view class="muted">{{capacityMin}} 人即可成局(含你自己),最多 {{capacityHardMax}} 人</view>
+
+  <view class="label" style="margin-top:32rpx;">人均大约</view>
+  <input class="input" type="number" value="{{priceEstTHB}}" bindinput="onPriceInput" />
+
+  <view class="label" style="margin-top:32rpx;">一句话说明(选填)</view>
+  <input class="input" placeholder="比如:想找人一起去看那个新开的展" maxlength="60" bindinput="onDescInput" />
+</view>
+
+<view class="footer">
+  <view class="btn-primary {{submitting ? 'disabled' : ''}}" bindtap="onSubmit">
+    {{submitting ? '发布中…' : '发出去'}}
+  </view>
+</view>
+
+<!-- 没报过名的人(包括第一个用户)也能直接开局:先建号,再接着发 -->
+<profile-sheet show="{{showRegister}}" title="先认识一下" confirm-text="创建账号并发布"
+               bind:submit="onRegisterSubmit" bind:close="onCloseRegister" />
