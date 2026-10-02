@@ -38,8 +38,20 @@ window.MOCK = {
     ] },
   rating: { loading: false, isHost: true, marks: [{ value: 'on_time', label: '准时', tone: 'good' }, { value: 'late', label: '迟到', tone: 'warn' }, { value: 'no_show', label: '放鸽子', tone: 'bad' }],
     event: EV(), participants: [{ userId: 'u2', nickname: '小林' }, { userId: 'u3', nickname: 'Mia' }], picked: { u2: 'on_time', u3: 'late' }, submitting: false },
-  my: { loading: false, signups: [{ _id: 's1', status: 'confirmed', startText: '周六 15:00', event: EV() }, { _id: 's2', status: 'attended', startText: '上周日 14:00', event: EVENTS[1] }],
-    pendingRatings: [{ event: EVENTS[1], startText: '上周日 14:00', count: 2, isHost: false }] },
+  my: {
+    loading: false, showPast: true,
+    profile: { nickname: '小王', reliability: 96, isAdmin: true },
+    pendingRatings: [{ event: EVENTS[1], startText: '上周日 14:00', count: 2, isHost: false }],
+    upcoming: [
+      { signupId: 's1', label: '已成团', tone: 'ok', canChat: true, event: EVENTS[2] },
+      { signupId: 's2', label: '候补中', tone: 'warm', canChat: false, event: EVENTS[1] },
+    ],
+    hosted: [{ signupId: 's3', isHost: true, label: '招人中', tone: 'warm', canChat: false, event: EV() }],
+    past: [
+      { signupId: 's4', label: '去过了', tone: 'ok', isHost: false, event: { ...EVENTS[1], dayText: '9 月 27 日' } },
+      { signupId: 's5', label: '人没凑齐,已解散', tone: 'mute', isHost: true, event: { ...EV(), dayText: '9 月 20 日' } },
+    ],
+  },
   privacy: { loading: false, profile: { nickname: '小王', reliability: 96 } },
   admin: { loading: false, autoApprove: false, aiPrecheck: 'advisory',
     venues: [{ _id: 'v1', name: 'Sarnies Bangkok', isActive: true, formed: 4, published: 5 }, { _id: 'v2', name: 'Hands and Heart', isActive: true, formed: 2, published: 2 }, { _id: 'v3', name: 'Old Town Cafe', isActive: false, formed: 0, published: 1 }],

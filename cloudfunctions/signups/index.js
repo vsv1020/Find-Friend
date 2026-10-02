@@ -13,6 +13,7 @@ const { interpret, onError, needsCheck, ACTION } = require('./common/moderation'
 const { isBlocked } = require('./common/report')
 const { validateProfile } = require('./common/validate')
 const { newUserDoc } = require('./common/user')
+const { groupMine } = require('./common/my')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
@@ -118,6 +119,10 @@ async function cancelSignup({ eventId }, openid) {
   return { cancelled: true, penalty }
 }
 
+/**
+ * 我的局:分组与投影都在 common/my.js(有测试)。
+ * 局一律经白名单投影 —— 以前这里原样返回局文档,带出了 hostId 与 genderCounts。
+ */
 async function mine(openid) {
   const user = await getUser(openid)
   const list = (await db.collection('signups')
@@ -128,7 +133,7 @@ async function mine(openid) {
     ? (await db.collection('events').where({ _id: _.in(ids) }).get()).data
     : []
   const byId = Object.fromEntries(events.map(e => [e._id, e]))
-  return list.map(s => ({ ...s, event: byId[s.eventId] })).filter(s => s.event)
+  return groupMine(list.map(s => ({ signup: s, event: byId[s.eventId] })), new Date())
 }
 
 // ---- helpers ----

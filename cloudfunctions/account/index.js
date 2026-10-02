@@ -68,7 +68,8 @@ async function register({ profile: raw }, openid) {
 
 async function profile(openid) {
   const u = await getUser(openid)
-  return { nickname: u.nickname, gender: u.gender, reliability: u.reliability, noShowCount: u.noShowCount }
+  // isAdmin 只用来决定是否显示后台入口;后台云函数自己仍逐次校验权限
+  return { nickname: u.nickname, gender: u.gender, reliability: u.reliability, noShowCount: u.noShowCount, isAdmin: !!u.isAdmin }
 }
 
 /** 隐私政策第七条承诺的「查看我们持有的关于你的信息」 */
