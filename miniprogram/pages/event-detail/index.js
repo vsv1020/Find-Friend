@@ -33,10 +33,7 @@ Page({
       this.setData({
         loading: false,
         event: {
-          ...event,
-          startText: fmt.formatStart(event.startAt),
-          sceneText: fmt.sceneLabel(event.sceneType),
-          shortByText: fmt.shortByText(event),
+          ...fmt.decorate(event),
           canChat: event.status === 'formed' || event.status === 'done' || event.status === 'archived',
         },
       })

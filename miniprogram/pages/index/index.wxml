@@ -1,10 +1,36 @@
-<view wx:if="{{loading}}" class="card muted">加载中…</view>
-<view wx:elif="{{!events.length}}" class="card muted">这周还没有局。周末快到了,开一个?</view>
-
-<view wx:for="{{events}}" wx:key="_id" class="card" data-id="{{item._id}}" bindtap="onTapEvent">
-  <view class="muted">{{item.sceneText}}</view>
-  <view style="font-size:34rpx;font-weight:600;margin:8rpx 0;">{{item.startText}} · {{item.venue.name}}</view>
-  <view class="muted">人均约 ฿{{item.priceEstTHB}}</view>
-  <!-- 同样只给计数,不给身份 -->
-  <view class="short-by">{{item.shortByText}}</view>
+<!-- 顶部问候:把「周末」变成一件值得期待的事 -->
+<view class="hero">
+  <view class="hero-eyebrow">{{heroDate}}</view>
+  <view class="hero-title">这周末,出门吧</view>
+  <view class="hero-sub">点一下,就有人一起。</view>
 </view>
+
+<view wx:if="{{loading}}" class="card muted">加载中…</view>
+<view wx:elif="{{!events.length}}" class="card empty">
+  <view class="empty-title">这周还没有局</view>
+  <view class="muted">周末快到了,开一个?</view>
+</view>
+
+<view wx:for="{{events}}" wx:key="_id" class="card ev tint-{{item.sceneType}}" data-id="{{item._id}}" bindtap="onTapEvent">
+  <view class="ev-top">
+    <view class="when">
+      <view class="when-day">{{item.weekdayText}}</view>
+      <view class="when-clock">{{item.clockText}}</view>
+    </view>
+    <view class="ev-body">
+      <view class="scene-tag {{item.sceneType}}">{{item.sceneGlyph}} {{item.sceneText}}</view>
+      <view class="ev-venue">{{item.venue.name}}</view>
+      <view class="muted">{{item.dayText}} · 人均约 ฿{{item.priceEstTHB}}</view>
+    </view>
+  </view>
+  <view class="divider"></view>
+  <view class="ev-bottom">
+    <!-- 只给计数,不给身份 -->
+    <view class="seats {{item.formed ? 'done' : ''}}">
+      <view wx:for="{{item.seats}}" wx:for-item="on" wx:key="index" class="seat {{on ? 'on' : ''}}"></view>
+    </view>
+    <view class="short-by {{item.formed ? 'done' : ''}}">{{item.shortByText}}</view>
+  </view>
+</view>
+
+<view class="fab" bindtap="onCreate">+ 开个局</view>

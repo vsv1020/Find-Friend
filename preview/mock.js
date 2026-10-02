@@ -1,5 +1,7 @@
 /** 每个页面的 mock 数据 —— 形状与各页 Page({data}) 一致,只为预览 */
+const SEATS = (n, max) => Array.from({ length: max }, (_, i) => i < n)
 const EV = (o = {}) => ({
+  weekdayText: '周六', clockText: '15:00', dayText: '10 月 3 日', sceneGlyph: '☕', seats: SEATS(1, 4), formed: false,
   _id: 'e1', sceneType: 'coffee', sceneText: '下午咖啡局', startText: '周六 15:00', startAt: '2026-10-03T08:00:00Z',
   venue: { name: 'Sarnies Bangkok', address: '101-103 Charoen Krung 44, Bang Rak' },
   capacityMin: 2, capacityMax: 4, confirmedCount: 1, priceEstTHB: 200, shortByText: '还差 1 人',
@@ -8,15 +10,15 @@ const EV = (o = {}) => ({
 })
 const EVENTS = [
   EV(),
-  EV({ _id: 'e2', sceneType: 'art', sceneText: '艺术展 / 市集', startText: '周六 14:00', venue: { name: 'BACC 曼谷艺术文化中心', address: 'Pathum Wan' }, confirmedCount: 2, capacityMax: 6, priceEstTHB: 300, shortByText: '还差 1 人', description: '新开的摄影展,看完一起找地方坐坐。' }),
-  EV({ _id: 'e3', sceneType: 'bar', sceneText: '晚间小酒馆', startText: '周日 20:00', venue: { name: 'Teens of Thailand', address: 'Soi Nana, Chinatown' }, confirmedCount: 4, capacityMax: 8, priceEstTHB: 600, shortByText: '已成团,仍可加入', status: 'formed' }),
+  EV({ _id: 'e2', sceneType: 'art', sceneText: '艺术展 / 市集', startText: '周六 14:00', clockText: '14:00', sceneGlyph: '🎨', seats: SEATS(2, 6), venue: { name: 'BACC 曼谷艺术文化中心', address: 'Pathum Wan' }, confirmedCount: 2, capacityMax: 6, priceEstTHB: 300, shortByText: '还差 1 人', description: '新开的摄影展,看完一起找地方坐坐。' }),
+  EV({ _id: 'e3', sceneType: 'bar', sceneText: '晚间小酒馆', startText: '周日 20:00', weekdayText: '周日', clockText: '20:00', dayText: '10 月 4 日', sceneGlyph: '🍸', seats: SEATS(4, 8), formed: true, venue: { name: 'Teens of Thailand', address: 'Soi Nana, Chinatown' }, confirmedCount: 4, capacityMax: 8, priceEstTHB: 600, shortByText: '已成团,仍可加入', status: 'formed' }),
 ]
 window.MOCK_COMPONENTS = {
   'profile-sheet': { nickname: '小王', gender: 'male', agreed: true,
     genderOptions: [{ value: 'male', label: '男' }, { value: 'female', label: '女' }, { value: 'other', label: '不便透露' }] },
 }
 window.MOCK = {
-  index: { loading: false, events: EVENTS },
+  index: { loading: false, events: EVENTS, heroDate: '10 月 2 日 · 周五' },
   'event-detail': { loading: false, event: EV({ canChat: true, viewer: { isHost: true, signupStatus: 'confirmed' } }), showProfileSheet: false, agreed: false,
     profile: { nickname: '', gender: '' }, genderOptions: [{ value: 'male', label: '男' }, { value: 'female', label: '女' }, { value: 'other', label: '不便透露' }] },
   'event-detail-sheet': { loading: false, event: EV(), showProfileSheet: true, agreed: true,

@@ -3,7 +3,12 @@ const api = require('../../utils/api')
 const fmt = require('../../utils/format')
 
 Page({
-  data: { events: [], loading: true },
+  data: { events: [], loading: true, heroDate: '' },
+  onLoad() {
+    const d = fmt.toLocal(new Date().toISOString())
+    this.setData({ heroDate: `${d.getUTCMonth() + 1} 月 ${d.getUTCDate()} 日 · ${['周日','周一','周二','周三','周四','周五','周六'][d.getUTCDay()]}` })
+  },
+  onCreate() { wx.navigateTo({ url: '/pages/event-create/index' }) },
   onShow() { this.load() },
   onPullDownRefresh() { this.load().then(() => wx.stopPullDownRefresh()) },
 
@@ -12,12 +17,7 @@ Page({
       const list = await api.events.list({ upcoming: true })
       this.setData({
         loading: false,
-        events: list.map(e => ({
-          ...e,
-          startText: fmt.formatStart(e.startAt),
-          sceneText: fmt.sceneLabel(e.sceneType),
-          shortByText: fmt.shortByText(e),
-        })),
+        events: list.map(fmt.decorate),
       })
     } catch (e) {
       this.setData({ loading: false })

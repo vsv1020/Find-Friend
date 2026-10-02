@@ -59,37 +59,37 @@ function layout(data, measure) {
   const blocks = []
   const push = (type, props) => blocks.push({ type, ...props })
 
-  push('text', { text: data.sceneText, x: PAD, y, size: 28, color: '#8a8a8a' })
+  push('text', { text: data.sceneText, x: PAD, y, size: 28, color: '#9A9084' })
   y += 60
 
   const titleLines = wrapText(data.startText + ' · ' + data.venueName, contentWidth,
     s => measure(s, 52), 2)
   for (const line of titleLines) {
-    push('text', { text: line, x: PAD, y, size: 52, weight: 'bold', color: '#1a1a1a' })
+    push('text', { text: line, x: PAD, y, size: 52, weight: 'bold', color: '#26221D' })
     y += 76
   }
   y += 12
 
   if (data.description) {
     for (const line of wrapText(data.description, contentWidth, s => measure(s, 30), 3)) {
-      push('text', { text: line, x: PAD, y, size: 30, color: '#5a5a5a' })
+      push('text', { text: line, x: PAD, y, size: 30, color: '#5C554B' })
       y += 46
     }
     y += 20
   }
 
-  push('text', { text: `人均约 ฿${data.priceEstTHB}`, x: PAD, y, size: 28, color: '#8a8a8a' })
+  push('text', { text: `人均约 ฿${data.priceEstTHB}`, x: PAD, y, size: 28, color: '#9A9084' })
   y += 70
 
   // 「还差 2 人」是整张海报的行动召唤,给它最重的视觉权重
-  push('badge', { text: data.shortByText, x: PAD, y, size: 40, color: '#d4741a' })
+  push('badge', { text: data.shortByText, x: PAD, y, size: 40, color: '#D98A3C' })
   y += 100
 
   // 小程序码固定在右下角,左侧留出扫码引导文案
   const qrSize = 200
   const qrY = H - PAD - qrSize
   push('image', { key: 'qrcode', x: W - PAD - qrSize, y: qrY, w: qrSize, h: qrSize })
-  push('text', { text: '长按识别,看看还差谁', x: PAD, y: qrY + qrSize / 2 - 10, size: 28, color: '#8a8a8a' })
+  push('text', { text: '长按识别,看看还差谁', x: PAD, y: qrY + qrSize / 2 - 10, size: 28, color: '#9A9084' })
 
   return { width: W, height: H, padding: PAD, blocks, contentBottom: y }
 }
@@ -101,7 +101,7 @@ function layout(data, measure) {
  * @param {object} images {qrcode: CanvasImage}
  */
 function draw(ctx, l, images = {}) {
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = '#FFFDF9'
   ctx.fillRect(0, 0, l.width, l.height)
 
   for (const b of l.blocks) {

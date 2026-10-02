@@ -46,7 +46,7 @@
 <view class="card">
   <view class="label">最多几人</view>
   <slider min="{{capacityMin}}" max="{{capacityHardMax}}" value="{{capacityMax}}"
-          show-value bindchange="onCapacityChange" />
+          show-value activeColor="#D98A3C" backgroundColor="#EDE6DB" block-color="#26221D" bindchange="onCapacityChange" />
   <view class="muted">{{capacityMin}} 人即可成局(含你自己),最多 {{capacityHardMax}} 人</view>
 
   <view class="label" style="margin-top:32rpx;">人均大约</view>

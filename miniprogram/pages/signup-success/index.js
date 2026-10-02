@@ -32,9 +32,7 @@ Page({
 
   async loadRecommends() {
     try {
-      this.setData({ recommends: (await api.events.recommend(this.eventId)).map(e => ({
-        ...e, startText: fmt.formatStart(e.startAt), shortByText: fmt.shortByText(e),
-      })) })
+      this.setData({ recommends: (await api.events.recommend(this.eventId)).map(fmt.decorate) })
     } catch (e) {}
   },
 

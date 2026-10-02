@@ -28,9 +28,9 @@ for (const dir of fs.existsSync(path.join(MP, 'components')) ? fs.readdirSync(pa
 const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>小程序界面预览</title>
 <style>
   body{margin:0;background:#e9e9ee;font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",sans-serif;}
-  .phone{width:375px;min-height:812px;margin:0 auto;background:#f7f7f7;position:relative;overflow:hidden;}
-  .nav{height:88px;background:#fff;display:flex;align-items:flex-end;justify-content:center;padding-bottom:12px;font-size:17px;font-weight:600;border-bottom:1px solid #eee;box-sizing:border-box}
-  .page{display:block;}
+  .phone{width:375px;min-height:812px;margin:0 auto;background:#F7F2EA;position:relative;overflow:hidden;}
+  .nav{height:88px;background:#F7F2EA;display:flex;align-items:flex-end;justify-content:center;padding-bottom:12px;font-size:17px;font-weight:600;border-bottom:1px solid #eee;box-sizing:border-box}
+  .page{display:block;--paper:#F7F2EA;--card:#FFFDF9;--ink:#26221D;--ink-2:#5C554B;--mute:#9A9084;--line:#EDE6DB;--amber:#D98A3C;--amber-soft:#FBEEDD;--olive:#6F7D5C;--olive-soft:#EEF1E6;--plum:#7A4F6B;--plum-soft:#F3E9F0;--sage:#6E8A86;--sage-soft:#E8EFEE;--radius:12px;--shadow:0 3px 12px rgba(60,40,10,.06);}
   img[data-wx=image]{max-width:100%;display:block}
   input[data-wx=input],textarea{border:none;outline:none;font:inherit;width:100%;box-sizing:border-box;background:transparent}
   button[data-wx=button]{border:none;font:inherit;width:100%;cursor:default}
@@ -39,8 +39,8 @@ const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>
   .wx-switch.on{background:#1a1a1a}.wx-switch.on i{left:22px}
   .wx-slider{width:100%}
   a[data-wx=navigator]{display:block;color:inherit;text-decoration:none}
-  .tabbar{position:absolute;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:1px solid #eee;display:flex;justify-content:space-around;align-items:center;font-size:12px;color:#8a8a8a}
-  .tabbar .on{color:#1a1a1a;font-weight:600}
+  .tabbar{position:absolute;bottom:0;left:0;right:0;height:56px;background:#FFFDF9;border-top:1px solid #EDE6DB;display:flex;justify-content:space-around;align-items:center;font-size:12px;color:#9A9084}
+  .tabbar .on{color:#26221D;font-weight:600}
   .tabbar[hidden]{display:none}
 </style>
 <style id="app-css"></style><style id="page-css"></style>
